@@ -49,16 +49,7 @@
 static DEFINE_MUTEX(driver_lock);
 static DEFINE_SPINLOCK(l2_lock);
 
-static struct drv_data {
-	struct acpu_level *acpu_freq_tbl;
-	const struct l2_level *l2_freq_tbl;
-	struct scalable *scalable;
-	struct hfpll_data *hfpll_data;
-	u32 bus_perf_client;
-	struct msm_bus_scale_pdata *bus_scale;
-	int boost_uv;
-	struct device *dev;
-} drv;
+static struct drv_data drv;
 
 static unsigned long acpuclk_krait_get_rate(int cpu)
 {
@@ -1076,7 +1067,7 @@ static struct pvs_table * __init select_freq_plan(u32 pte_efuse_phys,
 			struct pvs_table (*pvs_tables)[NUM_PVS])
 {
 	void __iomem *pte_efuse;
-	u32 pte_efuse_val, tbl_idx, bin_idx;
+	u32 pte_efuse_val;
 
 	pte_efuse = ioremap(pte_efuse_phys, 4);
 	if (!pte_efuse) {
@@ -1088,10 +1079,10 @@ static struct pvs_table * __init select_freq_plan(u32 pte_efuse_phys,
 	iounmap(pte_efuse);
 
 	/* Select frequency tables. */
-	bin_idx = get_speed_bin(pte_efuse_val);
-	tbl_idx = get_pvs_bin(pte_efuse_val);
+	drv.speed_bin = get_speed_bin(pte_efuse_val);
+	drv.pvs_bin = get_pvs_bin(pte_efuse_val);
 
-	return &pvs_tables[bin_idx][tbl_idx];
+	return &pvs_tables[drv.speed_bin][drv.pvs_bin];
 }
 
 static void __init drv_data_init(struct device *dev,
@@ -1181,6 +1172,8 @@ int __init acpuclk_krait_init(struct device *dev,
 	dcvs_freq_init();
 	acpuclk_register(&acpuclk_krait_data);
 	register_hotcpu_notifier(&acpuclk_cpu_notifier);
+
+	acpuclk_krait_debug_init(&drv);
 
 	return 0;
 }
