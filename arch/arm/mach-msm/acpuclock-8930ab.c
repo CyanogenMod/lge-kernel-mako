@@ -277,13 +277,9 @@ static struct acpu_level tbl_PVS6_1700MHz[] __initdata = {
 };
 
 static struct pvs_table pvs_tables[NUM_SPEED_BINS][NUM_PVS] __initdata = {
-	[0][0] = { tbl_PVS0_1700MHz, sizeof(tbl_PVS0_1700MHz), 0 },
-	[0][1] = { tbl_PVS1_1700MHz, sizeof(tbl_PVS1_1700MHz), 25000 },
-	[0][2] = { tbl_PVS2_1700MHz, sizeof(tbl_PVS2_1700MHz), 25000 },
-	[0][3] = { tbl_PVS3_1700MHz, sizeof(tbl_PVS3_1700MHz), 25000 },
-	[0][4] = { tbl_PVS4_1700MHz, sizeof(tbl_PVS4_1700MHz), 25000 },
-	[0][5] = { tbl_PVS5_1700MHz, sizeof(tbl_PVS5_1700MHz), 25000 },
-	[0][6] = { tbl_PVS6_1700MHz, sizeof(tbl_PVS6_1700MHz), 25000 },
+[0][PVS_SLOW]    = { acpu_freq_tbl_slow, sizeof(acpu_freq_tbl_slow), 0 },
+[0][PVS_NOMINAL] = { acpu_freq_tbl_nom,  sizeof(acpu_freq_tbl_nom),  25000 },
+[0][PVS_FAST]    = { acpu_freq_tbl_fast, sizeof(acpu_freq_tbl_fast), 25000 },
 };
 
 static struct acpuclk_krait_params acpuclk_8930ab_params __initdata = {
