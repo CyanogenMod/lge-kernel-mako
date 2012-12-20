@@ -123,6 +123,8 @@ static char *msm_pm_sleep_mode_labels[MSM_PM_SLEEP_MODE_NR] = {
 static struct hrtimer pm_hrtimer;
 static struct msm_pm_sleep_ops pm_sleep_ops;
 static struct msm_pm_sleep_status_data *msm_pm_slp_sts;
+static bool msm_pm_ldo_retention_enabled = true;
+
 /*
  * Write out the attribute.
  */
@@ -854,6 +856,14 @@ int msm_pm_idle_prepare(struct cpuidle_device *dev,
 			}
 			/* fall through */
 		case MSM_PM_SLEEP_MODE_RETENTION:
+			/*
+			 * The Krait BHS regulator doesn't have enough head
+			 * room to drive the retention voltage on LDO and so
+			 * has disabled retention
+			 */
+			if (!msm_pm_ldo_retention_enabled)
+				break;
+
 			if (!allow)
 				break;
 
@@ -1077,6 +1087,34 @@ static void msm_show_suspend_time(int64_t time)
 			suspend_time.tv_nsec / NSEC_PER_MSEC);
 }
 #endif
+
+static void msm_pm_ack_retention_disable(void *data)
+{
+	/*
+	 * This is a NULL function to ensure that the core has woken up
+	 * and is safe to disable retention.
+	 */
+}
+/**
+ * msm_pm_enable_retention() - Disable/Enable retention on all cores
+ * @enable: Enable/Disable retention
+ *
+ */
+void msm_pm_enable_retention(bool enable)
+{
+	msm_pm_ldo_retention_enabled = enable;
+	/*
+	 * If retention is being disabled, wakeup all online core to ensure
+	 * that it isn't executing retention. Offlined cores need not be woken
+	 * up as they enter the deepest sleep mode, namely RPM assited power
+	 * collapse
+	 */
+	if (!enable)
+		smp_call_function_many(cpu_online_mask,
+				msm_pm_ack_retention_disable,
+				NULL, true);
+}
+EXPORT_SYMBOL(msm_pm_enable_retention);
 
 static int msm_pm_enter(suspend_state_t state)
 {
