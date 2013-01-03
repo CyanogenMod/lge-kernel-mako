@@ -743,6 +743,12 @@ static void __init apq8064_early_reserve(void)
 static struct msm_bus_vectors hsic_init_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_SPS,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 0,
+		.ib = 0,
+	},
+	{
+		.src = MSM_BUS_MASTER_SPS,
 		.dst = MSM_BUS_SLAVE_SPS,
 		.ab = 0,
 		.ib = 0,
@@ -753,9 +759,15 @@ static struct msm_bus_vectors hsic_init_vectors[] = {
 static struct msm_bus_vectors hsic_max_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_SPS,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 60000000,		/* At least 480Mbps on bus. */
+		.ib = 960000000,	/* MAX bursts rate */
+	},
+	{
+		.src = MSM_BUS_MASTER_SPS,
 		.dst = MSM_BUS_SLAVE_SPS,
 		.ab = 0,
-		.ib = 256000000, /*vote for 32Mhz dfab clk rate*/
+		.ib = 512000000, /*vote for 64Mhz dfab clk rate*/
 	},
 };
 
@@ -1980,7 +1992,6 @@ static void __init register_i2c_devices(void)
 
 static void __init apq8064_common_init(void)
 {
-	struct msm_rpmrs_level rpmrs_level;
 	platform_device_register(&msm_gpio_device);
 	msm_tsens_early_init(&apq_tsens_pdata);
 	msm_thermal_init(&msm_thermal_pdata);
@@ -2012,12 +2023,8 @@ static void __init apq8064_common_init(void)
 	platform_add_devices(common_devices, ARRAY_SIZE(common_devices));
 	platform_add_devices(common_not_mpq_devices,
 			ARRAY_SIZE(common_not_mpq_devices));
-	rpmrs_level =
-		msm_rpmrs_levels[MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT];
-	msm_hsic_pdata.swfi_latency = rpmrs_level.latency_us;
-	rpmrs_level =
-		msm_rpmrs_levels[MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE];
-	msm_hsic_pdata.standalone_latency = rpmrs_level.latency_us;
+	msm_hsic_pdata.swfi_latency =
+		msm_rpmrs_levels[0].latency_us;
 	apq8064_device_hsic_host.dev.platform_data = &msm_hsic_pdata;
 	device_initialize(&apq8064_device_hsic_host.dev);
 	apq8064_pm8xxx_gpio_mpp_init();
