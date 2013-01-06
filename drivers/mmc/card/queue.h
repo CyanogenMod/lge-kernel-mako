@@ -12,17 +12,6 @@ struct mmc_blk_request {
 	struct mmc_data		data;
 };
 
-enum mmc_blk_status {
-	MMC_BLK_SUCCESS = 0,
-	MMC_BLK_PARTIAL,
-	MMC_BLK_CMD_ERR,
-	MMC_BLK_RETRY,
-	MMC_BLK_ABORT,
-	MMC_BLK_DATA_ERR,
-	MMC_BLK_ECC_ERR,
-	MMC_BLK_NOMEDIUM,
-};
-
 enum mmc_packed_cmd {
 	MMC_PACKED_NONE = 0,
 	MMC_PACKED_WRITE,
@@ -50,6 +39,10 @@ struct mmc_queue {
 	struct task_struct	*thread;
 	struct semaphore	thread_sem;
 	unsigned int		flags;
+#define MMC_QUEUE_SUSPENDED		(1 << 0)
+#define MMC_QUEUE_NEW_REQUEST		(1 << 1)
+#define MMC_QUEUE_URGENT_REQUEST	(1 << 2)
+
 	int			(*issue_fn)(struct mmc_queue *, struct request *);
 	void			*data;
 	struct request_queue	*queue;
@@ -59,6 +52,7 @@ struct mmc_queue {
 	bool			wr_packing_enabled;
 	int			num_of_potential_packed_wr_reqs;
 	int			num_wr_reqs_to_start_packing;
+	bool			no_pack_for_random;
 	int (*err_check_fn) (struct mmc_card *, struct mmc_async_req *);
 	void (*packed_test_fn) (struct request_queue *, struct mmc_queue_req *);
 };
