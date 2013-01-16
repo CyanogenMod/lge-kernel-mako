@@ -34,6 +34,7 @@
 #include <linux/syscalls.h>
 #include <linux/hugetlb.h>
 #include <linux/gfp.h>
+#include <trace/events/kmem.h>
 
 #include <asm/tlbflush.h>
 
@@ -975,6 +976,7 @@ int migrate_pages(struct list_head *from,
 	int swapwrite = current->flags & PF_SWAPWRITE;
 	int rc;
 
+	trace_migrate_pages_start(mode);
 	if (!swapwrite)
 		current->flags |= PF_SWAPWRITE;
 
@@ -993,6 +995,7 @@ int migrate_pages(struct list_head *from,
 				goto out;
 			case -EAGAIN:
 				retry++;
+				trace_migrate_retry(retry);
 				break;
 			case 0:
 				nr_succeeded++;
@@ -1013,6 +1016,7 @@ out:
 	if (!swapwrite)
 		current->flags &= ~PF_SWAPWRITE;
 
+	trace_migrate_pages_end(mode);
 	if (rc)
 		return rc;
 
