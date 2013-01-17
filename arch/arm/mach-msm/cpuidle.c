@@ -75,8 +75,7 @@ static int msm_cpuidle_enter(
 	enum msm_pm_sleep_mode pm_mode;
 	struct cpuidle_state_usage *st_usage = NULL;
 
-	pm_mode = msm_pm_idle_prepare(dev, drv, index);
-	dev->last_residency = msm_pm_idle_enter(pm_mode);
+	pm_mode = msm_pm_idle_enter(dev, drv, index);
 	for (i = 0; i < dev->state_count; i++) {
 		st_usage = &dev->states_usage[i];
 		if ((enum msm_pm_sleep_mode) cpuidle_get_statedata(st_usage)
