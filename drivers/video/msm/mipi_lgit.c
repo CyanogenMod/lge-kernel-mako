@@ -17,6 +17,7 @@
  * 02110-1301, USA.
  *
  */
+#include <linux/string.h>
 #include <linux/gpio.h>
 
 #include "msm_fb.h"
@@ -25,6 +26,12 @@
 #include "mdp4.h"
 
 static struct msm_panel_common_pdata *mipi_lgit_pdata;
+
+#ifdef CONFIG_LGIT_VIDEO_WXGA_CABC
+struct dsi_cmd_desc local_power_on_set_1[33];
+#else
+struct dsi_cmd_desc local_power_on_set_1[28];
+#endif
 
 static struct dsi_buf lgit_tx_buf;
 static struct dsi_buf lgit_rx_buf;
@@ -76,7 +83,8 @@ static int mipi_lgit_lcd_on(struct platform_device *pdev)
 
 	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x10000000);
 	ret = mipi_dsi_cmds_tx(&lgit_tx_buf,
-			mipi_lgit_pdata->power_on_set_1,
+//			mipi_lgit_pdata->power_on_set_1,
+			local_power_on_set_1,
 			mipi_lgit_pdata->power_on_set_size_1);
 	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x14000000);
 	if (ret < 0) {
@@ -178,17 +186,168 @@ static void mipi_lgit_set_backlight_board(struct msm_fb_data_type *mfd)
 	mipi_lgit_pdata->backlight_level(level, 0, 0);
 }
 
+/******************* begin sysfs interface *******************/
+
+static unsigned char calc_checksum(int intArr[]) {
+	int i = 0;
+	unsigned char chksum = 0;
+
+	for (i=1; i<10; i++)
+		chksum += intArr[i];
+
+	return chksum;
+}
+
+static ssize_t do_kgamma_store(struct device *dev, struct device_attribute *attr,
+				const char *buf, size_t count,
+				unsigned int offset)
+{
+	int kgamma[10];
+	int i;
+
+	sscanf(buf, "%d %d %d %d %d %d %d %d %d %d",
+		&kgamma[0], &kgamma[1], &kgamma[2], &kgamma[3],
+		&kgamma[4], &kgamma[5], &kgamma[6], &kgamma[7],
+		&kgamma[8], &kgamma[9]);
+
+	if (calc_checksum(kgamma) == (unsigned char) kgamma[0]) {
+	        kgamma[0] = 0xd0 + offset;
+		for (i=0; i<10; i++) {
+			pr_info("kgamma_p [%d] => %d \n", i, kgamma[i]);
+			local_power_on_set_1[5+offset].payload[i] = kgamma[i];
+		}
+
+		kgamma[0] = 0xd1 + offset;
+		for (i=0; i<10; i++) {
+			pr_info("kgamma_n [%d] => %d \n", i, kgamma[i]);
+			local_power_on_set_1[6+offset].payload[i] = kgamma[i];
+		}
+		return count;
+	}
+	return -EINVAL;
+}
+
+static ssize_t do_kgamma_show(struct device *dev, struct device_attribute *attr,
+			      char *buf, unsigned int offset)
+{
+	int kgamma[10];
+	int i;
+
+	for (i=1; i<10; i++)
+		kgamma[i] = local_power_on_set_1[5+offset].payload[i];
+
+	kgamma[0] = (int) calc_checksum(kgamma);
+
+	return sprintf(buf, "%d %d %d %d %d %d %d %d %d %d", 
+		kgamma[0], kgamma[1], kgamma[2], kgamma[3],
+		kgamma[4], kgamma[5], kgamma[6], kgamma[7],
+		kgamma[8], kgamma[9]);
+}
+
+static ssize_t kgamma_r_store(struct device *dev, struct device_attribute *attr,
+						const char *buf, size_t count)
+{
+	return do_kgamma_store(dev,attr,buf,count,0);
+}
+
+static ssize_t kgamma_r_show(struct device *dev, struct device_attribute *attr,
+								char *buf)
+{
+	return do_kgamma_show(dev,attr,buf,0);
+}
+
+static ssize_t kgamma_g_store(struct device *dev, struct device_attribute *attr,
+						const char *buf, size_t count)
+{
+	return do_kgamma_store(dev,attr,buf,count,2);
+}
+
+static ssize_t kgamma_g_show(struct device *dev, struct device_attribute *attr,
+								char *buf)
+{
+	return do_kgamma_show(dev,attr,buf,2);
+}
+
+static ssize_t kgamma_b_store(struct device *dev, struct device_attribute *attr,
+						const char *buf, size_t count)
+{
+	return do_kgamma_store(dev,attr,buf,count,4);
+}
+
+static ssize_t kgamma_b_show(struct device *dev, struct device_attribute *attr,
+								char *buf)
+{
+	return do_kgamma_show(dev,attr,buf,4);
+}
+
+static ssize_t kgamma_apply_store(struct device *dev, struct device_attribute *attr,
+						const char *buf, size_t count)
+{
+/*
+ *  This probably should have some checking to make sure we have proper
+ *  platform data (see mipi_lgit_lcd_on() ), but I'm not quite sure how
+ */
+	int ret = 0;
+
+	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x10000000);
+	ret = mipi_dsi_cmds_tx(&lgit_tx_buf,
+//			mipi_lgit_pdata->power_on_set_1,
+			local_power_on_set_1,
+			mipi_lgit_pdata->power_on_set_size_1);
+	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x14000000);
+	if (ret < 0) {
+		pr_err("%s: failed to transmit power_on_set_1 cmds\n", __func__);
+		return ret;
+	}
+	return count;
+}
+
+static ssize_t kgamma_apply_show(struct device *dev, struct device_attribute *attr,
+								char *buf)
+{
+	return 0;
+}
+
+static DEVICE_ATTR(kgamma_r, 0644, kgamma_r_show, kgamma_r_store);
+static DEVICE_ATTR(kgamma_g, 0644, kgamma_g_show, kgamma_g_store);
+static DEVICE_ATTR(kgamma_b, 0644, kgamma_b_show, kgamma_b_store);
+static DEVICE_ATTR(kgamma_apply, 0644, kgamma_apply_show, kgamma_apply_store);
+
+/******************* end sysfs interface *******************/
+
 static int mipi_lgit_lcd_probe(struct platform_device *pdev)
 {
+	int rc;
+
 	if (pdev->id == 0) {
 		mipi_lgit_pdata = pdev->dev.platform_data;
 		return 0;
 	}
 
+	// make a copy of platform data
+	memcpy((void*)local_power_on_set_1, (void*)mipi_lgit_pdata->power_on_set_1, 
+		sizeof(local_power_on_set_1));
+
 	pr_info("%s start\n", __func__);
 
 	skip_init = true;
 	msm_fb_add_device(pdev);
+
+	rc = device_create_file(&pdev->dev, &dev_attr_kgamma_r);
+	if(rc !=0)
+		return -1;
+
+	rc = device_create_file(&pdev->dev, &dev_attr_kgamma_g);
+	if(rc !=0)
+		return -1;
+
+	rc = device_create_file(&pdev->dev, &dev_attr_kgamma_b);
+	if(rc !=0)
+		return -1;
+
+	rc = device_create_file(&pdev->dev, &dev_attr_kgamma_apply);
+	if(rc !=0)
+		return -1;
 
 	return 0;
 }
