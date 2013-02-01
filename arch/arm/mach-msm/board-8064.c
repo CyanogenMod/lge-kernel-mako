@@ -2493,7 +2493,6 @@ static struct platform_device *cdp_devices[] __initdata = {
 #ifdef CONFIG_MSM_ROTATOR
 	&msm_rotator_device,
 #endif
-	&msm8064_pc_cntr,
 	&msm8064_cpu_slp_status,
 };
 
@@ -3166,11 +3165,13 @@ static void __init apq8064_common_init(void)
 	if (cpu_is_apq8064ab())
 		apq8064ab_update_krait_spm();
 	if (cpu_is_krait_v3()) {
-		msm_pm_set_tz_retention_flag(0);
+		struct msm_pm_init_data_type *pdata =
+				msm8064_pm_8x60.dev.platform_data;
+		pdata->retention_calls_tz = false;
 		apq8064ab_update_retention_spm();
-	} else {
-		msm_pm_set_tz_retention_flag(1);
 	}
+	platform_device_register(&msm8064_pm_8x60);
+
 	msm_spm_init(msm_spm_data, ARRAY_SIZE(msm_spm_data));
 	msm_spm_l2_init(msm_spm_l2_data);
 	msm_tsens_early_init(&apq_tsens_pdata);
