@@ -972,5 +972,17 @@ config TOUCHSCREEN_ELAN_TF_3K
         help
           To compile this driver as a module, choose M here: the
           module will be called atmel_tsadcc.
+
+config TOUCHSCREEN_CHARGER_NOTIFY
+	bool "Notify charger status to touch driver"
+	depends on I2C
+	depends on TOUCHSCREEN_LGE_SYNAPTICS
+	help
+	  Define a dummy power supply for touch and register it as
+	  supplicant of usb/dc/wireless power source so that the touch
+	  driver can get the charging start and stop events.
+	  The touch firmware will use this information to decide whether
+	  a new algorithm to reduce the noise impact needs to be applied
+	  or not.
 endif
 
