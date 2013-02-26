@@ -128,6 +128,6 @@ DEFINE_EVENT(msm_pm_exit, msm_pm_exit_wfi,
 );
 #endif
 #undef TRACE_INCLUDE_PATH
-#define TRACE_INCLUDE_PATH .
+#define TRACE_INCLUDE_PATH mach
 #define TRACE_INCLUDE_FILE trace_msm_low_power
 #include <trace/define_trace.h>
