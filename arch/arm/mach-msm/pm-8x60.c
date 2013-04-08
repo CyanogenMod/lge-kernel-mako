@@ -28,6 +28,7 @@
 #include <linux/delay.h>
 #include <linux/platform_device.h>
 #include <linux/of_platform.h>
+#include <linux/cpu.h>
 #include <mach/msm_iomap.h>
 #include <mach/socinfo.h>
 #include <mach/system.h>
@@ -58,7 +59,6 @@
 
 #define CREATE_TRACE_POINTS
 #include "trace_msm_low_power.h"
-
 #define SCM_L2_RETENTION	(0x2)
 #define SCM_CMD_TERMINATE_PC	(0x2)
 
@@ -125,13 +125,14 @@ static char *msm_pm_sleep_mode_labels[MSM_PM_SLEEP_MODE_NR] = {
 
 static struct hrtimer pm_hrtimer;
 static struct msm_pm_sleep_ops pm_sleep_ops;
-static struct msm_pm_sleep_status_data *msm_pm_slp_sts;
 static bool msm_pm_ldo_retention_enabled = true;
 static bool msm_pm_use_sync_timer;
 static struct msm_pm_cp15_save_data cp15_data;
 static bool msm_pm_retention_calls_tz;
 static uint32_t msm_pm_max_sleep_time;
 static bool msm_no_ramp_down_pc;
+static struct msm_pm_sleep_status_data *msm_pm_slp_sts;
+static bool msm_pm_pc_reset_timer;
 
 static int msm_pm_get_pc_mode(struct device_node *node,
 		const char *key, uint32_t *pc_mode_val)
@@ -529,8 +530,13 @@ static bool __ref msm_pm_spm_power_collapse(
 	if (MSM_PM_DEBUG_RESET_VECTOR & msm_pm_debug_mask)
 		pr_info("CPU%u: %s: program vector to %p\n",
 			cpu, __func__, entry);
+	if (from_idle && msm_pm_pc_reset_timer)
+		clockevents_notify(CLOCK_EVT_NOTIFY_BROADCAST_ENTER, &cpu);
 
 	collapsed = msm_pm_collapse();
+
+	if (from_idle && msm_pm_pc_reset_timer)
+		clockevents_notify(CLOCK_EVT_NOTIFY_BROADCAST_EXIT, &cpu);
 
 	msm_pm_boot_config_after_pc(cpu);
 
@@ -1304,6 +1310,35 @@ static const struct platform_suspend_ops msm_pm_ops = {
 	.valid = suspend_valid_only_mem,
 };
 
+static void setup_broadcast_timer(void *arg)
+{
+	unsigned long reason = (unsigned long)arg;
+	int cpu = smp_processor_id();
+
+	reason = reason ?
+		CLOCK_EVT_NOTIFY_BROADCAST_ON : CLOCK_EVT_NOTIFY_BROADCAST_OFF;
+
+	clockevents_notify(reason, &cpu);
+}
+
+static int setup_broadcast_cpuhp_notify(struct notifier_block *n,
+		unsigned long action, void *hcpu)
+{
+	int hotcpu = (unsigned long)hcpu;
+
+	switch (action & ~CPU_TASKS_FROZEN) {
+	case CPU_ONLINE:
+		smp_call_function_single(hotcpu, setup_broadcast_timer,
+				(void *)true, 1);
+		break;
+	}
+
+	return NOTIFY_OK;
+}
+
+static struct notifier_block setup_broadcast_notifier = {
+	.notifier_call = setup_broadcast_cpuhp_notify,
+};
 
 static int __init msm_pm_init(void)
 {
@@ -1328,6 +1363,14 @@ static int __init msm_pm_init(void)
 		pr_err("%s(): failed to register driver %s\n", __func__,
 				msm_cpu_status_driver.driver.name);
 		return rc;
+	}
+
+	if (msm_pm_pc_reset_timer) {
+		get_cpu();
+		smp_call_function_many(cpu_online_mask, setup_broadcast_timer,
+				(void *)true, 1);
+		put_cpu();
+		register_cpu_notifier(&setup_broadcast_notifier);
 	}
 
 	return 0;
@@ -1514,6 +1557,10 @@ static int __devinit msm_pm_8x60_probe(struct platform_device *pdev)
 		key = "qcom,saw-turns-off-pll";
 		msm_no_ramp_down_pc = of_property_read_bool(pdev->dev.of_node,
 					key);
+
+		key = "qcom,pc-resets-timer";
+		msm_pm_pc_reset_timer = of_property_read_bool(
+				pdev->dev.of_node, key);
 	}
 
 	if (pdata_local.cp15_data.reg_data &&
