@@ -74,6 +74,7 @@ int msm_spm_set_vdd(unsigned int cpu, unsigned int vlevel)
 
 	info.cpu = cpu;
 	info.vlevel = vlevel;
+	info.err = -ENODEV;
 
 	if ((smp_processor_id() != cpu) && cpu_online(cpu)) {
 		/**
