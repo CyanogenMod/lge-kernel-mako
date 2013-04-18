@@ -1,0 +1,10 @@
+Change-Id: Ib2c301154104058bbba4a26e3efb648f302802d3
+Code-Review+2: Ricardo Cerqueira <cyanogenmod@cerqueira.org>
+Verified+1: Ricardo Cerqueira <cyanogenmod@cerqueira.org>
+Code-Review+1: pragma- <pragma78@gmail.com>
+Code-Review+1: Jason McKee <jmckee.work@gmail.com>
+Submitted-by: Ricardo Cerqueira <cyanogenmod@cerqueira.org>
+Submitted-at: Thu, 18 Apr 2013 09:34:25 -0700
+Reviewed-on: http://review.cyanogenmod.org/32066
+Project: CyanogenMod/lge-kernel-mako
+Branch: refs/heads/jellybean
