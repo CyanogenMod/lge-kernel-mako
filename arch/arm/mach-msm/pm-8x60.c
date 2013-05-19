@@ -890,7 +890,11 @@ enum msm_pm_sleep_mode msm_pm_idle_enter(struct cpuidle_device *dev,
 
 	case MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE:
 		collapsed = msm_pm_power_collapse_standalone(true);
-		exit_stat = MSM_PM_STAT_IDLE_STANDALONE_POWER_COLLAPSE;
+		if (collapsed)
+			exit_stat = MSM_PM_STAT_IDLE_STANDALONE_POWER_COLLAPSE;
+		else
+			exit_stat
+			    = MSM_PM_STAT_IDLE_FAILED_STANDALONE_POWER_COLLAPSE;
 		break;
 
 	case MSM_PM_SLEEP_MODE_POWER_COLLAPSE:
@@ -900,7 +904,11 @@ enum msm_pm_sleep_mode msm_pm_idle_enter(struct cpuidle_device *dev,
 		collapsed = msm_pm_power_collapse(true);
 		timer_halted = true;
 
-		exit_stat = MSM_PM_STAT_IDLE_POWER_COLLAPSE;
+		if (collapsed)
+			exit_stat = MSM_PM_STAT_IDLE_POWER_COLLAPSE;
+		else
+			exit_stat = MSM_PM_STAT_IDLE_FAILED_POWER_COLLAPSE;
+
 		msm_pm_timer_exit_idle(timer_halted);
 		break;
 
@@ -984,17 +992,6 @@ void msm_pm_cpu_enter_lowpower(unsigned int cpu)
 	else
 		msm_pm_swfi();
 }
-
-#ifdef CONFIG_PM_DEBUG
-static void msm_show_suspend_time(int64_t time)
-{
-	struct timespec suspend_time = {0, 0};
-
-	timespec_add_ns(&suspend_time, time);
-	pr_info("Suspended for %lu.%03lu seconds\n", suspend_time.tv_sec,
-			suspend_time.tv_nsec / NSEC_PER_MSEC);
-}
-#endif
 
 static void msm_pm_ack_retention_disable(void *data)
 {
@@ -1104,9 +1101,6 @@ static int msm_pm_enter(suspend_state_t state)
 			msm_pm_add_stat(MSM_PM_STAT_SUSPEND, time);
 		else
 			msm_pm_add_stat(MSM_PM_STAT_FAILED_SUSPEND, time);
-#ifdef CONFIG_PM_DEBUG
-		msm_show_suspend_time(time);
-#endif
 	} else if (allow[MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE]) {
 		if (MSM_PM_DEBUG_SUSPEND & msm_pm_debug_mask)
 			pr_info("%s: standalone power collapse\n", __func__);
