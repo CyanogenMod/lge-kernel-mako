@@ -27,6 +27,7 @@ static char *descriptions =
 	"2  Perf: Toggle PMU IRQ when CPU's are hotplugged\n"
 	"3  Perf: Correct irq for CPU hotplug detection\n"
 	"4  Perf: Check perf activity on correct CPU\n"
+	"10 Perf: Fix counts across power collapse\n"
 ;
 
 static ssize_t desc_read(struct file *fp, char __user *buf,
