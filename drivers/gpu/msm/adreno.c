@@ -627,10 +627,8 @@ static int adreno_iommu_setstate(struct kgsl_device *device,
 
 	cmds += adreno_add_idle_cmds(adreno_dev, cmds);
 
-	if (!adreno_is_a2xx(adreno_dev)) {
-		/* Acquire GPU-CPU sync Lock here */
-		cmds += kgsl_mmu_sync_lock(&device->mmu, cmds);
-	}
+	/* Acquire GPU-CPU sync Lock here */
+	cmds += kgsl_mmu_sync_lock(&device->mmu, cmds);
 
 	pt_val = kgsl_mmu_get_pt_base_addr(&device->mmu,
 					device->mmu.hwpagetable);
@@ -693,10 +691,8 @@ static int adreno_iommu_setstate(struct kgsl_device *device,
 		}
 	}
 
-	if (!adreno_is_a2xx(adreno_dev)) {
-		/* Release GPU-CPU sync Lock here */
-		cmds += kgsl_mmu_sync_unlock(&device->mmu, cmds);
-	}
+	/* Release GPU-CPU sync Lock here */
+	cmds += kgsl_mmu_sync_unlock(&device->mmu, cmds);
 
 	if (cpu_is_msm8960())
 		cmds += adreno_add_change_mh_phys_limit_cmds(cmds,
