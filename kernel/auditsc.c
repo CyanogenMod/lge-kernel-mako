@@ -87,7 +87,7 @@
 #define MAX_EXECVE_AUDIT_LEN 7500
 
 /* number of audit rules */
-int audit_n_rules;
+int audit_n_rules = 1;
 
 /* determines whether we collect data for signals sent */
 int audit_signals;
