@@ -2368,7 +2368,7 @@ static struct msm_spm_platform_data msm_spm_l2_data[] __initdata = {
 	[0] = {
 		.reg_base_addr = MSM_SAW_L2_BASE,
 		.reg_init_values[MSM_SPM_REG_SAW2_SPM_CTL] = 0x00,
-		.reg_init_values[MSM_SPM_REG_SAW2_PMIC_DLY] = 0x02070207,
+		.reg_init_values[MSM_SPM_REG_SAW2_PMIC_DLY] = 0x02020204,
 		.reg_init_values[MSM_SPM_REG_SAW2_PMIC_DATA_0] = 0x00A000AE,
 		.reg_init_values[MSM_SPM_REG_SAW2_PMIC_DATA_1] = 0x00A00020,
 		.modes = msm_spm_l2_seq_list,
@@ -2430,9 +2430,9 @@ static struct msm_spm_platform_data msm_spm_data[] __initdata = {
 		.reg_init_values[MSM_SPM_REG_SAW2_AVS_HYSTERESIS] = 0x00,
 #endif
 		.reg_init_values[MSM_SPM_REG_SAW2_SPM_CTL] = 0x01,
-		.reg_init_values[MSM_SPM_REG_SAW2_PMIC_DLY] = 0x02070207,
-		.reg_init_values[MSM_SPM_REG_SAW2_PMIC_DATA_0] = 0x0060009C,
-		.reg_init_values[MSM_SPM_REG_SAW2_PMIC_DATA_1] = 0x0000001C,
+		.reg_init_values[MSM_SPM_REG_SAW2_PMIC_DLY] = 0x03020004,
+		.reg_init_values[MSM_SPM_REG_SAW2_PMIC_DATA_0] = 0x0084009C,
+		.reg_init_values[MSM_SPM_REG_SAW2_PMIC_DATA_1] = 0x00A4001C,
 		.vctl_timeout_us = 50,
 		.num_modes = ARRAY_SIZE(msm_spm_nonboot_cpu_seq_list),
 		.modes = msm_spm_nonboot_cpu_seq_list,
@@ -3322,6 +3322,16 @@ static void __init apq8064_common_init(void)
 	u32 platform_version;
 
 	platform_device_register(&msm_gpio_device);
+	if (cpu_is_apq8064ab())
+		apq8064ab_update_krait_spm();
+	if (cpu_is_krait_v3()) {
+		msm_pm_set_tz_retention_flag(0);
+		apq8064ab_update_retention_spm();
+	} else {
+		msm_pm_set_tz_retention_flag(1);
+	}
+	msm_spm_init(msm_spm_data, ARRAY_SIZE(msm_spm_data));
+	msm_spm_l2_init(msm_spm_l2_data);
 	msm_tsens_early_init(&apq_tsens_pdata);
 	msm_thermal_init(&msm_thermal_pdata);
 	if (socinfo_init() < 0)
@@ -3404,16 +3414,6 @@ static void __init apq8064_common_init(void)
 		apq8064_init_dsps();
 		platform_device_register(&msm_8960_riva);
 	}
-	if (cpu_is_apq8064ab())
-		apq8064ab_update_krait_spm();
-	if (cpu_is_krait_v3()) {
-		msm_pm_set_tz_retention_flag(0);
-		apq8064ab_update_retention_spm();
-	} else {
-		msm_pm_set_tz_retention_flag(1);
-	}
-	msm_spm_init(msm_spm_data, ARRAY_SIZE(msm_spm_data));
-	msm_spm_l2_init(msm_spm_l2_data);
 	BUG_ON(msm_pm_boot_init(&msm_pm_boot_pdata));
 	apq8064_epm_adc_init();
 
