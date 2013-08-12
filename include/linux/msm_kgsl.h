@@ -12,26 +12,25 @@
 #define KGSL_VERSION_MINOR        14
 
 /*context flags */
-#define KGSL_CONTEXT_SAVE_GMEM		0x00000001
-#define KGSL_CONTEXT_NO_GMEM_ALLOC	0x00000002
-#define KGSL_CONTEXT_SUBMIT_IB_LIST	0x00000004
-#define KGSL_CONTEXT_CTX_SWITCH		0x00000008
-#define KGSL_CONTEXT_PREAMBLE		0x00000010
-#define KGSL_CONTEXT_TRASH_STATE	0x00000020
-#define KGSL_CONTEXT_PER_CONTEXT_TS	0x00000040
-#define KGSL_CONTEXT_USER_GENERATED_TS	0x00000080
-#define KGSL_CONTEXT_END_OF_FRAME	0x00000100
-
-#define KGSL_CONTEXT_NO_FAULT_TOLERANCE 0x00000200
+#define KGSL_CONTEXT_SAVE_GMEM		  0x00000001
+#define KGSL_CONTEXT_NO_GMEM_ALLOC	  0x00000002
+#define KGSL_CONTEXT_SUBMIT_IB_LIST	  0x00000004
+#define KGSL_CONTEXT_CTX_SWITCH		  0x00000008
+#define KGSL_CONTEXT_PREAMBLE		  0x00000010
+#define KGSL_CONTEXT_TRASH_STATE	  0x00000020
+#define KGSL_CONTEXT_PER_CONTEXT_TS	  0x00000040
+#define KGSL_CONTEXT_USER_GENERATED_TS	  0x00000080
+#define KGSL_CONTEXT_END_OF_FRAME         0x00000100
+#define KGSL_CONTEXT_NO_FAULT_TOLERANCE	  0x00000200
 /* bits [12:15] are reserved for future use */
-#define KGSL_CONTEXT_TYPE_MASK          0x01F00000
-#define KGSL_CONTEXT_TYPE_SHIFT         20
+#define KGSL_CONTEXT_TYPE_MASK            0x01F00000
+#define KGSL_CONTEXT_TYPE_SHIFT           20
 
-#define KGSL_CONTEXT_TYPE_ANY		0
-#define KGSL_CONTEXT_TYPE_GL		1
-#define KGSL_CONTEXT_TYPE_CL		2
-#define KGSL_CONTEXT_TYPE_C2D		3
-#define KGSL_CONTEXT_TYPE_RS		4
+#define KGSL_CONTEXT_TYPE_ANY		  0
+#define KGSL_CONTEXT_TYPE_GL		  1
+#define KGSL_CONTEXT_TYPE_CL		  2
+#define KGSL_CONTEXT_TYPE_C2D		  3
+#define KGSL_CONTEXT_TYPE_RS		  4
 
 #define KGSL_CONTEXT_INVALID 0xffffffff
 
@@ -195,6 +194,31 @@ enum kgsl_property_type {
 	KGSL_PROP_VERSION         = 0x00000008,
 	KGSL_PROP_GPU_RESET_STAT  = 0x00000009,
 	KGSL_PROP_PWRCTRL         = 0x0000000E,
+	KGSL_PROP_FAULT_TOLERANCE = 0x00000011,
+};
+
+/* Fault Tolerance policy flags */
+#define  KGSL_FT_DISABLE                  0x00000001
+#define  KGSL_FT_REPLAY                   0x00000002
+#define  KGSL_FT_SKIPIB                   0x00000004
+#define  KGSL_FT_SKIPFRAME                0x00000008
+#define  KGSL_FT_DEFAULT_POLICY           (KGSL_FT_REPLAY + KGSL_FT_SKIPIB)
+
+/* Pagefault policy flags */
+#define KGSL_FT_PAGEFAULT_INT_ENABLE         0x00000001
+#define KGSL_FT_PAGEFAULT_GPUHALT_ENABLE     0x00000002
+#define KGSL_FT_PAGEFAULT_LOG_ONE_PER_PAGE   0x00000004
+#define KGSL_FT_PAGEFAULT_LOG_ONE_PER_INT    0x00000008
+#define KGSL_FT_PAGEFAULT_DEFAULT_POLICY     (KGSL_FT_PAGEFAULT_INT_ENABLE + \
+					KGSL_FT_PAGEFAULT_LOG_ONE_PER_PAGE)
+
+/* Fault tolerance config */
+struct kgsl_ft_config {
+	unsigned int ft_policy;    /* Fault Tolerance policy flags */
+	unsigned int ft_pf_policy; /* Pagefault policy flags */
+	unsigned int ft_pm_dump;   /* KGSL enable postmortem dump */
+	unsigned int ft_detect_ms;
+	unsigned int ft_dos_timeout_ms;
 };
 
 struct kgsl_shadowprop {
