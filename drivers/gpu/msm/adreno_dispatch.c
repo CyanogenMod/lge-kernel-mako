@@ -15,7 +15,6 @@
 #include <linux/delay.h>
 #include <linux/sched.h>
 #include <linux/jiffies.h>
-#include <linux/err.h>
 
 #include "kgsl.h"
 #include "adreno.h"
@@ -112,23 +111,12 @@ static inline struct kgsl_cmdbatch *adreno_context_get_cmdbatch(
 	mutex_lock(&drawctxt->mutex);
 	if (drawctxt->cmdqueue_head != drawctxt->cmdqueue_tail) {
 		cmdbatch = drawctxt->cmdqueue[drawctxt->cmdqueue_head];
-
-		/*
-		 * Don't dequeue a cmdbatch that is still waiting for other
-		 * events
-		 */
-		if (kgsl_cmdbatch_sync_pending(cmdbatch)) {
-			cmdbatch = ERR_PTR(-EAGAIN);
-			goto done;
-		}
-
 		drawctxt->cmdqueue_head =
 			CMDQUEUE_NEXT(drawctxt->cmdqueue_head,
 			ADRENO_CONTEXT_CMDQUEUE_SIZE);
 		drawctxt->queued--;
 	}
 
-done:
 	mutex_unlock(&drawctxt->mutex);
 
 	return cmdbatch;
@@ -297,29 +285,6 @@ static int dispatcher_context_sendcmds(struct adreno_device *adreno_dev,
 		if (cmdbatch == NULL)
 			break;
 
-		/*
-		 * adreno_context_get_cmdbatch returns -EAGAIN if the current
-		 * cmdbatch has pending sync points so no more to do here.
-		 * When the sync points are satisfied then the context will get
-		 * reqeueued
-		 */
-
-		if (IS_ERR(cmdbatch))
-			return count;
-
-		/*
-		 * If this is a synchronization submission then there are no
-		 * commands to submit.  Discard it and get the next item from
-		 * the queue.  Decrement count so this packet doesn't count
-		 * against the burst for the context
-		 */
-
-		if (cmdbatch->flags & KGSL_CONTEXT_SYNC) {
-			count--;
-			kgsl_cmdbatch_destroy(cmdbatch);
-			continue;
-		}
-
 		ret = sendcmd(adreno_dev, cmdbatch);
 
 		/*
@@ -442,40 +407,6 @@ static int _check_context_queue(struct adreno_context *drawctxt)
 }
 
 /**
- * get_timestamp() - Return the next timestamp for the context
- * @drawctxt - Pointer to an adreno draw context struct
- * @cmdbatch - Pointer to a command batch
- * @timestamp - Pointer to a timestamp value possibly passed from the user
- *
- * Assign a timestamp based on the settings of the draw context and the command
- * batch.
- */
-static int get_timestamp(struct adreno_context *drawctxt,
-		struct kgsl_cmdbatch *cmdbatch, unsigned int *timestamp)
-{
-	/* Synchronization commands don't get a timestamp */
-	if (cmdbatch->flags & KGSL_CONTEXT_SYNC) {
-		*timestamp = 0;
-		return 0;
-	}
-
-	if (drawctxt->flags & CTXT_FLAGS_USER_GENERATED_TS) {
-		/*
-		 * User specified timestamps need to be greater than the last
-		 * issued timestamp in the context
-		 */
-		if (timestamp_cmp(drawctxt->timestamp, *timestamp) >= 0)
-			return -ERANGE;
-
-		drawctxt->timestamp = *timestamp;
-	} else
-		drawctxt->timestamp++;
-
-	*timestamp = drawctxt->timestamp;
-	return 0;
-}
-
-/**
  * adreno_context_queue_cmd() - Queue a new command in the context
  * @adreno_dev: Pointer to the adreno device struct
  * @drawctxt: Pointer to the adreno draw context
@@ -563,13 +494,23 @@ int adreno_context_queue_cmd(struct adreno_device *adreno_dev,
 		}
 	}
 
-	ret = get_timestamp(drawctxt, cmdbatch, timestamp);
-	if (ret) {
-		mutex_unlock(&drawctxt->mutex);
-		return ret;
-	}
+	/*
+	 * If the UMD specified a timestamp then use that under the condition
+	 * that it is greater then the last queued timestamp in the context.
+	 */
 
-	cmdbatch->timestamp = *timestamp;
+	if (drawctxt->flags & CTXT_FLAGS_USER_GENERATED_TS) {
+		if (timestamp_cmp(drawctxt->timestamp, *timestamp) >= 0) {
+			mutex_unlock(&drawctxt->mutex);
+			return -ERANGE;
+		}
+
+		drawctxt->timestamp = *timestamp;
+	} else
+		drawctxt->timestamp++;
+
+	cmdbatch->timestamp = drawctxt->timestamp;
+	*timestamp = drawctxt->timestamp;
 
 	/* The batch fault policy is the current system fault policy */
 	cmdbatch->fault_policy = adreno_dev->ft_policy;

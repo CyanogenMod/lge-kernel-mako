@@ -135,8 +135,6 @@ struct kgsl_functable {
 	int (*postmortem_dump) (struct kgsl_device *device, int manual);
 	int (*next_event)(struct kgsl_device *device,
 		struct kgsl_event *event);
-	void (*drawctxt_sched)(struct kgsl_device *device,
-		struct kgsl_context *context);
 };
 
 /* MH register values */
@@ -162,7 +160,6 @@ struct kgsl_event {
 
 /**
  * struct kgsl_cmdbatch - KGSl command descriptor
- * @device: KGSL GPU device that the command was created for
  * @context: KGSL context that created the command
  * @timestamp: Timestamp assigned to the command
  * @flags: flags
@@ -174,16 +171,9 @@ struct kgsl_event {
  * @expires: Point in time when the cmdbatch is considered to be hung
  * @invalid:  non-zero if the dispatcher determines the command and the owning
  * context should be invalidated
- * @refcount: kref structure to maintain the reference count
- * @synclist: List of context/timestamp tuples to wait for before issuing
- *
- * This struture defines an atomic batch of command buffers issued from
- * userspace.
  */
 struct kgsl_cmdbatch {
-	struct kgsl_device *device;
 	struct kgsl_context *context;
-	spinlock_t lock;
 	uint32_t timestamp;
 	uint32_t flags;
 	uint32_t priv;
@@ -192,8 +182,6 @@ struct kgsl_cmdbatch {
 	struct kgsl_ibdesc *ibdesc;
 	unsigned long expires;
 	int invalid;
-	struct kref refcount;
-	struct list_head synclist;
 };
 
 /* Internal cmdbatch flags */
@@ -372,9 +360,6 @@ struct kgsl_device *kgsl_get_device(int dev_idx);
 
 int kgsl_add_event(struct kgsl_device *device, u32 id, u32 ts,
 	kgsl_event_func func, void *priv, void *owner);
-
-void kgsl_cancel_event(struct kgsl_device *device, struct kgsl_context *context,
-		unsigned int timestamp, kgsl_event_func func, void *priv);
 
 static inline void kgsl_process_add_stats(struct kgsl_process_private *priv,
 	unsigned int type, size_t size)
@@ -619,29 +604,20 @@ static inline void kgsl_cancel_events_timestamp(struct kgsl_device *device,
 	kgsl_signal_event(device, context, timestamp, KGSL_EVENT_CANCELLED);
 }
 
-void kgsl_cmdbatch_destroy(struct kgsl_cmdbatch *cmdbatch);
-
-void kgsl_cmdbatch_destroy_object(struct kref *kref);
-
 /**
- * kgsl_cmdbatch_put() - Decrement the refcount for a command batch object
- * @cmdbatch: Pointer to the command batch object
- */
-static inline void kgsl_cmdbatch_put(struct kgsl_cmdbatch *cmdbatch)
-{
-	kref_put(&cmdbatch->refcount, kgsl_cmdbatch_destroy_object);
-}
-
-/**
- * kgsl_cmdbatch_sync_pending() - return true if the cmdbatch is waiting
- * @cmdbatch: Pointer to the command batch object to check
+ * kgsl_cmdbatch_destroy() - Destroy a command batch structure
+ * @cmdbatch: Pointer to the command batch to destroy
  *
- * Return non-zero if the specified command batch is still waiting for sync
- * point dependencies to be satisfied
+ * Destroy and free a command batch
  */
-static inline int kgsl_cmdbatch_sync_pending(struct kgsl_cmdbatch *cmdbatch)
+static inline void kgsl_cmdbatch_destroy(struct kgsl_cmdbatch *cmdbatch)
 {
-	return list_empty(&cmdbatch->synclist) ? 0 : 1;
+	if (cmdbatch) {
+		kgsl_context_put(cmdbatch->context);
+		kfree(cmdbatch->ibdesc);
+	}
+
+	kfree(cmdbatch);
 }
 
 #endif  /* __KGSL_DEVICE_H */
