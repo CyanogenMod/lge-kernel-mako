@@ -1497,7 +1497,7 @@ static void add_supported_video_format(
 	boolean mhl_supported = true;
 	limit_supported_video_format(&video_format);
 
-	if (video_format >= HDMI_VFRMT_MAX)
+	if (video_format >= HDMI_VFRMT_END)//HDMI_VFRMT_MAX
 		return;
 
 	timing = hdmi_common_get_supported_mode(video_format);
