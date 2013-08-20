@@ -1849,9 +1849,10 @@ static struct platform_device *common_devices[] __initdata = {
 static struct platform_device *cdp_devices[] __initdata = {
 	&msm_device_sps_apq8064,
 #ifdef CONFIG_MSM_ROTATOR
-       &msm_rotator_device,
+        &msm_rotator_device,
 #endif
-	&msm8960_cpu_slp_status,
+        &msm8064_pc_cntr,
+	&msm8064_cpu_slp_status,
 };
 
 #ifdef CONFIG_USER_RC_INPUT
