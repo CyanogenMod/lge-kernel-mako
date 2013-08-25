@@ -1274,7 +1274,7 @@ static void __init devicemaps_init(struct machine_desc *mdesc)
 			map.virtual = CONFIG_ARM_USER_ACCESSIBLE_TIMER_BASE;
 			map.length = PAGE_SIZE;
 			map.type = MT_DEVICE_USER_ACCESSIBLE;
-			create_mapping(&map, false);
+			create_mapping(&map);
 		}
 	}
 
