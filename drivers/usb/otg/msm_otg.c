@@ -88,6 +88,7 @@ static struct regulator *mhl_usb_hs_switch;
 static struct power_supply *psy;
 
 static bool aca_id_turned_on;
+#ifdef CONFIG_CHARGER_SMB345
 static struct workqueue_struct *msm_otg_acok_wq;
 static struct workqueue_struct *msm_otg_id_pin_wq;
 static int global_vbus_suspend_status;
@@ -109,6 +110,7 @@ enum msm_otg_smb345_chg_type {
 
 extern int usb_cable_type_detect(unsigned int chgr_type);
 extern void smb345_otg_status(bool on);
+#endif
 static inline bool aca_enabled(void)
 {
 #ifdef CONFIG_USB_MSM_ACA
@@ -130,6 +132,7 @@ static const int vdd_val[VDD_TYPE_MAX][VDD_VAL_MAX] = {
 			[VDD_MAX]	= USB_PHY_VDD_DIG_VOL_MAX,
 		},
 };
+#ifdef CONFIG_CHARGER_SMB345
 static int old_chg_type = 0;
 static void asus_chg_set_chg_mode(enum usb_chg_type chg_src)
 {
@@ -175,6 +178,7 @@ static void asus_chg_set_chg_mode(enum usb_chg_type chg_src)
 
 	old_chg_type = chg_type;
 }
+#endif
 
 static int msm_hsusb_ldo_init(struct msm_otg *motg, int init)
 {
@@ -1267,11 +1271,13 @@ static void msm_otg_start_host(struct usb_otg *otg, int on)
 
 	if (on) {
 		dev_dbg(otg->phy->dev, "host on\n");
+#ifdef CONFIG_CHARGER_SMB345
 		smb345_otg_status(true);
 		otg_host_on = 1;
 
 		// Reset to apply new parameter for host.
 		msm_otg_reset(otg->phy);
+#endif
 
 		if (pdata->otg_control == OTG_PHY_CONTROL)
 			ulpi_write(otg->phy, OTG_COMP_DISABLE,
@@ -1299,8 +1305,10 @@ static void msm_otg_start_host(struct usb_otg *otg, int on)
 			ulpi_write(otg->phy, OTG_COMP_DISABLE,
 				ULPI_CLR(ULPI_PWR_CLK_MNG_REG));
 
+#ifdef CONFIG_CHARGER_SMB345
 		smb345_otg_status(false);
 		otg_host_on = 0;
+#endif
 	}
 }
 
@@ -2275,7 +2283,9 @@ static void msm_chg_detect_work(struct work_struct *w)
 		msm_chg_enable_aca_intr(motg);
 		dev_info(phy->dev, "chg_type = %s\n",
 			chg_to_string(motg->chg_type));
+#ifdef CONFIG_CHARGER_SMB345
 		asus_chg_set_chg_mode(motg->chg_type);
+#endif
 		queue_work(system_nrt_wq, &motg->sm_work);
 		return;
 	default:
@@ -2326,10 +2336,12 @@ static void msm_otg_init_sm(struct msm_otg *motg)
 					set_bit(ID, &motg->inputs);
 				else
 					clear_bit(ID, &motg->inputs);
+#ifdef CONFIG_CHARGER_SMB345
 			} else {
 				// set to peripheral
 				printk("[usb_otg] switch to peripheral mode by default (boot)\r\n");
 				set_bit(ID, &motg->inputs);
+#endif
 			}
 			/*
 			 * VBUS initial state is reported after PMIC
@@ -2445,6 +2457,10 @@ static void msm_otg_sm_work(struct work_struct *w)
 						OTG_STATE_B_PERIPHERAL;
 					break;
 				case USB_SDP_CHARGER:
+#ifndef CONFIG_CHARGER_SMB345
+					msm_otg_notify_charger(motg,
+							IDEV_CHG_MIN);
+#endif
 					if(!slimport_is_connected()) {
 						msm_otg_start_peripheral(otg, 1);
 						otg->phy->state =
@@ -2477,7 +2493,9 @@ static void msm_otg_sm_work(struct work_struct *w)
 			cancel_delayed_work_sync(&motg->check_ta_work);
 			motg->chg_state = USB_CHG_STATE_UNDEFINED;
 			motg->chg_type = USB_INVALID_CHARGER;
+#ifdef CONFIG_CHARGER_SMB345
 			asus_chg_set_chg_mode(USB_INVALID_CHARGER);
+#endif
 			msm_otg_notify_charger(motg, 0);
 			msm_otg_reset(otg->phy);
 			/*
@@ -3138,6 +3156,7 @@ static void msm_otg_set_vbus_state(int online)
 		queue_work(system_nrt_wq, &motg->sm_work);
 }
 
+#ifdef CONFIG_CHARGER_SMB345
 static void (*notify_vbus_state_func_ptr)(int);
 static void acok_irq_work_function(struct work_struct *work)
 {
@@ -3303,6 +3322,7 @@ void msm_otg_id_pin_irq_enabled(bool enabled)
 	pr_info("%s : id_pin_irq_enable = %d\n", __func__, id_pin_irq_enable);
 }
 EXPORT_SYMBOL( msm_otg_id_pin_irq_enabled);
+#endif
 
 static void msm_pmic_id_status_w(struct work_struct *w)
 {
@@ -4042,8 +4062,10 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 	device_init_wakeup(&pdev->dev, 1);
 	motg->mA_port = IUNIT;
 
+#ifdef CONFIG_CHARGER_SMB345
 	msm_otg_acok_init(motg);
 	msm_otg_id_pin_init(motg);
+#endif
 
 	ret = msm_otg_debugfs_init(motg);
 	if (ret)
@@ -4051,7 +4073,11 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 			"not available\n");
 
 	if (motg->pdata->otg_control == OTG_PMIC_CONTROL)
+#ifdef CONFIG_CHARGER_SMB345
 		msm_otg_register_vbus_sn(&msm_otg_set_vbus_state);
+#else
+		pm8921_charger_register_vbus_sn(&msm_otg_set_vbus_state);
+#endif
 
 	if (motg->pdata->phy_type == SNPS_28NM_INTEGRATED_PHY) {
 		if (motg->pdata->otg_control == OTG_PMIC_CONTROL) {
@@ -4080,8 +4106,10 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 			debug_bus_voting_enabled = true;
 	}
 
+#ifdef CONFIG_CHARGER_SMB345
 	queue_delayed_work(msm_otg_acok_wq, &motg->acok_irq_work, 0.5*HZ);
 	queue_delayed_work(msm_otg_id_pin_wq, &motg->id_pin_irq_work, 0.5*HZ);
+#endif
 
 	return 0;
 
@@ -4139,7 +4167,11 @@ static int __devexit msm_otg_remove(struct platform_device *pdev)
 	if (pdev->dev.of_node)
 		msm_otg_setup_devices(pdev, motg->pdata->mode, false);
 	if (motg->pdata->otg_control == OTG_PMIC_CONTROL)
+#ifdef CONFIG_CHARGER_SMB345
 		msm_otg_unregister_vbus_sn(0);
+#else
+		pm8921_charger_unregister_vbus_sn(0);
+#endif
 	msm_otg_mhl_register_callback(motg, NULL);
 	msm_otg_debugfs_cleanup();
 	cancel_delayed_work_sync(&motg->chg_work);
@@ -4153,8 +4185,10 @@ static int __devexit msm_otg_remove(struct platform_device *pdev)
 	pm_runtime_disable(&pdev->dev);
 	wake_lock_destroy(&motg->wlock);
 
+#ifdef CONFIG_CHARGER_SMB345
 	msm_otg_id_pin_free(motg);
 	msm_otg_acok_free(motg);
+#endif
 
 	msm_hsusb_mhl_switch_enable(motg, 0);
 	if (motg->pdata->pmic_id_irq)
@@ -4247,7 +4281,9 @@ static int msm_otg_pm_suspend(struct device *dev)
 {
 	int ret = 0;
 	struct msm_otg *motg = dev_get_drvdata(dev);
+#ifdef CONFIG_CHARGER_SMB345
 	unsigned id_gpio = APQ_OTG_ID_PIN, vbus_det_gpio = APQ_AP_ACOK;
+#endif
 
 
 	dev_dbg(dev, "OTG PM suspend\n");
@@ -4259,8 +4295,10 @@ static int msm_otg_pm_suspend(struct device *dev)
 		return ret;
 	}
 
+#ifdef CONFIG_CHARGER_SMB345
 	global_vbus_suspend_status = gpio_get_value(vbus_det_gpio);
 	global_id_pin_suspend_status = gpio_get_value(id_gpio);
+#endif
 
 	return 0;
 }
@@ -4269,7 +4307,9 @@ static int msm_otg_pm_resume(struct device *dev)
 {
 	int ret = 0;
 	struct msm_otg *motg = dev_get_drvdata(dev);
+#ifdef CONFIG_CHARGER_SMB345
 	unsigned id_gpio = APQ_OTG_ID_PIN, vbus_det_gpio = APQ_AP_ACOK;
+#endif
 
 	dev_dbg(dev, "OTG PM resume\n");
 
@@ -4292,6 +4332,7 @@ static int msm_otg_pm_resume(struct device *dev)
 	if (ret)
 		return ret;
 
+#ifdef CONFIG_CHARGER_SMB345
 	if (gpio_get_value(vbus_det_gpio) != global_vbus_suspend_status) {
 		dev_info(dev, "%s: usb vbus change in suspend\n", __func__);
 		wake_lock_timeout(&motg->wlock, 1*HZ);
@@ -4301,6 +4342,7 @@ static int msm_otg_pm_resume(struct device *dev)
 		dev_info(dev, "%s: usb id pin change in suspend\n", __func__);
 		wake_lock_timeout(&motg->wlock, 1*HZ);
 	}
+#endif
 
 	return 0;
 }
