@@ -43,7 +43,9 @@
 #include "mdp4.h"
 #endif
 #include "mipi_dsi.h"
+#if defined(CONFIG_MACH_APQ8064_FLO) || defined(CONFIG_MACH_APQ8064_DEB)
 #include <mach/board_asustek.h>
+#endif
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #undef CONFIG_HAS_EARLYSUSPEND
@@ -2583,7 +2585,11 @@ static int mdp_bus_scale_register(void)
 static int bus_index = 1;
 int mdp_bus_scale_update_request(u64 ab, u64 ib)
 {
+#if defined(CONFIG_MACH_APQ8064_FLO) || defined(CONFIG_MACH_APQ8064_DEB)
 	lcd_type type = asustek_get_lcd_type();
+#else
+	int type = 0;
+#endif
 
 	if (mdp_bus_scale_handle < 1) {
 		pr_err("%s invalid bus handle\n", __func__);

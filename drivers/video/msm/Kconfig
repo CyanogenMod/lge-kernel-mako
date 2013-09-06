@@ -477,6 +477,11 @@ config FB_MSM_MIPI_JDI_CMD_MODE
 	bool "MIPI JDI 1080P HD PT Panel"
 	select FB_MSM_MIPI_JDI_1080_HD_PT
 
+config FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT_PANEL
+       bool "MIPI LG Display WXGA PT Panel"
+       select FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT
+
+
 # end the multiple mipi panels config
 
 # remove the choice
