@@ -2991,14 +2991,18 @@ void sp_tx_set_sys_state(enum SP_TX_System_State ss)
 	case STATE_CABLE_PLUG:
 		sp_tx_system_state = STATE_CABLE_PLUG;
 		SP_DEV_NOTICE("STATE_CABLE_PLUG");
+#ifdef CONFIG_TOUCHSCREEN_ELAN_TF_3K
 		/*add touch callback*/
 		touch_callback(UNPLUG_HDMI);
+#endif
 		break;
 	case STATE_PARSE_EDID:
 		sp_tx_system_state = STATE_PARSE_EDID;
 		SP_DEV_NOTICE("SP_TX_READ_PARSE_EDID");
+#ifdef CONFIG_TOUCHSCREEN_ELAN_TF_3K
 		/*add touch callback*/
 		touch_callback(PLUG_HDMI);
+#endif
 		break;
 	case STATE_CONFIG_HDMI:
 		sp_tx_system_state = STATE_CONFIG_HDMI;

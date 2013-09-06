@@ -304,6 +304,7 @@ static struct platform_device *misc_devices[] __initdata = {
 #define GPIO_SLIMPORT_RESET_N    31
 #define GPIO_SLIMPORT_INT_N      43
 
+static int anx7808_avdd_onoff(bool on);
 static int anx7808_dvdd_onoff(bool on)
 {
 	static bool power_state = 0;
@@ -360,6 +361,7 @@ static int anx7808_dvdd_onoff(bool on)
 			goto out;
 		}
 	}
+	anx7808_avdd_onoff(on);
 	power_state = on;
 
 out:
@@ -367,22 +369,22 @@ out:
 
 }
 
+static bool anx7808_init_done = 0;
 static int anx7808_avdd_onoff(bool on)
 {
-	static bool init_done = 0;
 	int rc = 0;
 
-	if (!init_done) {
+	if (!anx7808_init_done && on) {
 		rc = gpio_request_one(ANX_AVDD33_EN,
 					GPIOF_OUT_INIT_HIGH, "anx_avdd33_en");
 		if (rc) {
 			pr_err("request anx_avdd33_en failed, rc=%d\n", rc);
 			return rc;
 		}
-		init_done = 1;
+		anx7808_init_done = 1;
+	        gpio_set_value(ANX_AVDD33_EN, on);
 	}
 
-	gpio_set_value(ANX_AVDD33_EN, on);
 	return 0;
 }
 
@@ -391,8 +393,7 @@ static struct anx7808_platform_data anx7808_pdata = {
 	.gpio_reset = GPIO_SLIMPORT_RESET_N,
 	.gpio_int = GPIO_SLIMPORT_INT_N,
 	.gpio_cbl_det = GPIO_SLIMPORT_CBL_DET,
-	.dvdd_power = anx7808_dvdd_onoff,
-	.avdd_power = anx7808_avdd_onoff,
+	.switch_power = anx7808_dvdd_onoff,
 };
 
 struct i2c_board_info i2c_anx7808_info[] = {

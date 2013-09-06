@@ -52,7 +52,9 @@ static bool hdcp_enable = 1;
 static bool hdcp_enable = 0;
 #endif
 
+#ifdef CONFIG_CHARGER_SMB345
 extern void msm_otg_id_pin_irq_enabled(bool enabled);
+#endif
 
 //extern void msm_otg_id_pin_irq_enabled(bool enabled);
 /*sysfs read interface*/
@@ -115,6 +117,7 @@ void sp_tx_hardware_poweron(void)
 {
 	struct anx7808_platform_data *pdata =
 		anx7808_client->dev.platform_data;
+#ifdef CONFIG_CHARGER_SMB345
 	struct clk *gp_clk_b1 = clk_get_sys("slimport", "core_clk");
 	int ret = 0;
 
@@ -124,6 +127,7 @@ void sp_tx_hardware_poweron(void)
 	ret = clk_prepare_enable(gp_clk_b1);
 	WARN(ret, "gp_clk_b1 not enabled (%d)\n", ret);
 	mdelay(5);
+#endif
 
 	gpio_set_value(pdata->gpio_reset, 0);
 	msleep(1);
@@ -140,7 +144,9 @@ void sp_tx_hardware_powerdown(void)
 {
 	struct anx7808_platform_data *pdata =
 		anx7808_client->dev.platform_data;
+#ifdef CONFIG_CHARGER_SMB345
 	struct clk *gp_clk_b1 = clk_get_sys("slimport", "core_clk");
+#endif
 
 	gpio_set_value(pdata->gpio_reset, 0);
 	msleep(1);
@@ -148,9 +154,11 @@ void sp_tx_hardware_powerdown(void)
 	msleep(5);
 	gpio_set_value(pdata->gpio_p_dwn, 1);
 
+#ifdef CONFIG_CHARGER_SMB345
 	mdelay(5);
 	WARN(IS_ERR(gp_clk_b1), "gp_clk_b1 not found (%ld)\n", PTR_ERR(gp_clk_b1));
 	clk_disable_unprepare(gp_clk_b1);
+#endif
 
 	msleep(1);
 
@@ -183,7 +191,9 @@ static void slimport_cable_plug_proc(struct anx7808_data *anx7808)
 				sp_tx_hardware_poweron();
 				sp_tx_power_on(SP_TX_PWR_REG);
 				sp_tx_power_on(SP_TX_PWR_TOTAL);
+#ifdef CONFIG_CHARGER_SMB345
 				sp_tx_pull_down_id(TRUE);
+#endif
 				hdmi_rx_initialization();
 				sp_tx_initialization();
 				sp_tx_vbus_poweron();
@@ -191,7 +201,9 @@ static void slimport_cable_plug_proc(struct anx7808_data *anx7808)
 				if (!sp_tx_get_cable_type()) {
 					SP_DEV_ERR("%s:AUX ERR\n", __func__);
 					sp_tx_vbus_powerdown();
+#ifdef CONFIG_CHARGER_SMB345
 					sp_tx_pull_down_id(FALSE);
+#endif
 					sp_tx_power_down(SP_TX_PWR_REG);
 					sp_tx_power_down(SP_TX_PWR_TOTAL);
 					sp_tx_hardware_powerdown();
@@ -232,7 +244,9 @@ static void slimport_cable_plug_proc(struct anx7808_data *anx7808)
 		}
 	} else if (sp_tx_pd_mode == 0) {
 		sp_tx_vbus_powerdown();
+#ifdef CONFIG_CHARGER_SMB345
 		sp_tx_pull_down_id(FALSE);
+#endif
 		sp_tx_power_down(SP_TX_PWR_REG);
 		sp_tx_power_down(SP_TX_PWR_TOTAL);
 		sp_tx_hardware_powerdown();
@@ -279,6 +293,7 @@ static void slimport_playback_proc(void)
 	}
 }
 
+#ifdef CONFIG_CHARGER_SMB345
 static void slimport_cable_monitor(struct anx7808_data *anx7808)
 {
 	if ((gpio_get_value_cansleep(anx7808->pdata->gpio_cbl_det))
@@ -300,6 +315,7 @@ static void slimport_cable_monitor(struct anx7808_data *anx7808)
 		}
 	}
 }
+#endif
 
 static void slimport_main_proc(struct anx7808_data *anx7808)
 {
@@ -341,7 +357,9 @@ static void slimport_main_proc(struct anx7808_data *anx7808)
 	if (sp_tx_system_state == STATE_PLAY_BACK)
 		slimport_playback_proc();
 
+#ifdef CONFIG_CHARGER_SMB345
 	slimport_cable_monitor(anx7808);
+#endif
 
 	mutex_unlock(&anx7808->lock);
 }
@@ -448,14 +466,18 @@ static irqreturn_t anx7808_cbl_det_isr(int irq, void *data)
 		wake_lock(&anx7808->slimport_lock);
 		SP_DEV_DBG("%s : detect cable insertion\n", __func__);
 		queue_delayed_work(anx7808->workqueue, &anx7808->work, 0);
+#ifdef CONFIG_CHARGER_SMB345
 		msm_otg_id_pin_irq_enabled(false);
+#endif
 	} else {
 		SP_DEV_DBG("%s : detect cable removal\n", __func__);
 		status = cancel_delayed_work_sync(&anx7808->work);
 		if(status == 0)
 			flush_workqueue(anx7808 ->workqueue);
 		wake_unlock(&anx7808->slimport_lock);
+#ifdef CONFIG_CHARGER_SMB345
 		msm_otg_id_pin_irq_enabled(true);
+#endif
 	}
 	return IRQ_HANDLED;
 }
@@ -521,6 +543,7 @@ static int anx7808_i2c_probe(struct i2c_client *client,
 		goto err1;
 	}
 
+#ifdef CONFIG_CHARGER_SMB345
 	ret = gpio_request(GPIO_SLIMPORT_27M_CLOCK, "slimport_27M_clk");
 	if (ret) {
 		pr_err("'%s: (%d) gpio_request failed, ret=%d\n",
@@ -540,6 +563,9 @@ static int anx7808_i2c_probe(struct i2c_client *client,
 	if (ret) {
 		printk("%s: gpio %d unavaliable for input \n", __func__, GPIO_APQ_USB_ID);
 	}
+#else
+	anx7808->pdata->switch_power(1);
+#endif
 
 	ret = anx7808_system_init();
 	if (ret) {
@@ -586,7 +612,9 @@ static int anx7808_i2c_probe(struct i2c_client *client,
 		wake_lock(&anx7808->slimport_lock);
 		SP_DEV_DBG("%s : detect cable insertion\n", __func__);
 		queue_delayed_work(anx7808->workqueue, &anx7808->work, 0);
+#ifdef CONFIG_CHARGER_SMB345
 		msm_otg_id_pin_irq_enabled(false);
+#endif
 	}
 
 	goto exit;
