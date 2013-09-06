@@ -157,11 +157,9 @@ static int msm_get_sensor_info(
 	}
 
 	sdata = mctl->sdata;
-	D("%s: sensor_name %s vendor_name %s\n", __func__, sdata->sensor_name
-		sdata->vendor_name);
+	D("%s: sensor_name %s\n", __func__, sdata->sensor_name);
 
 	memcpy(&info.name[0], sdata->sensor_name, MAX_SENSOR_NAME);
-	memcpy(&info.vendor_name[0], sdata->vendor_name, MAX_SENSOR_NAME);
 	info.flash_enabled = sdata->flash_data->flash_type !=
 					MSM_CAMERA_FLASH_NONE;
 	info.pxlcode = pcam->usr_fmts[0].pxlcode;
@@ -431,7 +429,7 @@ static int msm_mctl_cmd(struct msm_cam_media_controller *p_mctl,
 			core, ioctl, VIDIOC_MSM_ISPIF_CFG, argp);
 		break;
 	default:
-		if(p_mctl && p_mctl->isp_config) {
+		if ((p_mctl) && (p_mctl->isp_sdev) && (p_mctl->isp_sdev->isp_config)) {
 			/* ISP config*/
 			D("%s:%d: go to default. Calling msm_isp_config\n",
 				__func__, __LINE__);

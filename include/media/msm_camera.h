@@ -1394,7 +1394,9 @@ struct sensor_cfg_data {
 		struct sensor_output_info_t output_info;
 		struct msm_eeprom_data_t eeprom_data;
 		struct csi_lane_params_t csi_lane_params;
+#ifndef CONFIG_MACH_APQ8064_MAKO
 		struct msm_calib_af sensor_otp_afcalib;
+#endif
 		/* QRD */
 		uint16_t antibanding;
 		uint8_t contrast;
@@ -1656,7 +1658,9 @@ struct msm_camsensor_info {
 	int mount_angle;
 	uint32_t max_width;
 	uint32_t max_height;
+#ifndef CONFIG_MACH_APQ8064_MAKO
 	char vendor_name[MAX_SENSOR_NAME];
+#endif
 };
 
 #define V4L2_SINGLE_PLANE	0

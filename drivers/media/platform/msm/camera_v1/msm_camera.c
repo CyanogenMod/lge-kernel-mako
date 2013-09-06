@@ -61,6 +61,7 @@ static uint32_t sensor_mount_angle[MSM_MAX_CAMERA_SENSORS];
 
 struct ion_client *client_for_ion;
 
+#ifdef CONFIG_MSM_CAMERA_DEBUG
 static const char *vfe_config_cmd[] = {
 	"CMD_GENERAL",  /* 0 */
 	"CMD_AXI_CFG_OUT1",
@@ -108,6 +109,7 @@ static const char *vfe_config_cmd[] = {
 	"CMD_AXI_CFG_SNAP_VPE",
 	"CMD_AXI_CFG_SNAP_THUMB_VPE",
 };
+#endif
 #define __CONTAINS(r, v, l, field) ({				\
 	typeof(r) __r = r;					\
 	typeof(v) __v = v;					\
