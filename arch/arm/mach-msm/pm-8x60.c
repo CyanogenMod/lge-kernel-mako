@@ -1523,7 +1523,7 @@ static int __devinit msm_pm_8x60_probe(struct platform_device *pdev)
 		cp15_data.reg_val = kzalloc(sizeof(uint32_t) *
 				pdata_local.cp15_data.reg_saved_state_size,
 				GFP_KERNEL);
-		if (!cp15_data.reg_val)
+		if (cp15_data.reg_val)
 			return -ENOMEM;
 
 		memcpy(cp15_data.reg_data, pdata_local.cp15_data.reg_data,
