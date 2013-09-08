@@ -89,6 +89,7 @@ static void bcm2079x_enable_irq(struct bcm2079x_dev *bcm2079x_dev)
 	spin_unlock_irqrestore(&bcm2079x_dev->irq_enabled_lock, flags);
 }
 
+#if !(defined(CONFIG_MACH_APQ8064_FLO) || defined(CONFIG_MACH_APQ8064_DEB))
 /*
  The alias address 0x79, when sent as a 7-bit address from the host processor
  will match the first byte (highest 2 bits) of the default client address
@@ -142,6 +143,7 @@ static int change_client_addr(struct bcm2079x_dev *bcm2079x_dev, int addr)
 
     return (ret == sizeof(addr_data) ? 0 : -EIO);
 }
+#endif
 
 static irqreturn_t bcm2079x_dev_irq_handler(int irq, void *dev_id)
 {
@@ -296,10 +298,15 @@ static long bcm2079x_dev_unlocked_ioctl(struct file *filp,
 	case BCMNFC_READ_MULTI_PACKETS:
 		break;
 	case BCMNFC_CHANGE_ADDR:
+#if defined(CONFIG_MACH_APQ8064_FLO) || defined(CONFIG_MACH_APQ8064_DEB)
+		/* Remove a workaround since BCM20793 chip default is 7 bits address */
+		break;
+#else
 		dev_info(&bcm2079x_dev->client->dev,
 			 "%s, BCMNFC_CHANGE_ADDR (%x, %lx):\n", __func__, cmd,
 			 arg);
 		return change_client_addr(bcm2079x_dev, arg);
+#endif
 	case BCMNFC_POWER_CTL:
 		gpio_set_value(bcm2079x_dev->en_gpio, arg);
 		break;
