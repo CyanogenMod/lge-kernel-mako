@@ -1216,7 +1216,7 @@ static struct platform_driver msm_cpu_status_driver = {
 	},
 };
 
-static int __devinit msm_pm_init(void)
+static int __init msm_pm_setup_saved_state(void)
 {
 	pgd_t *pc_pgd;
 	pmd_t *pmd;
