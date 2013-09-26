@@ -37,14 +37,13 @@ TRACE_EVENT(kgsl_issueibcmds,
 
 	TP_PROTO(struct kgsl_device *device,
 			int drawctxt_id,
-			struct kgsl_ibdesc *ibdesc,
-			int numibs,
+			struct kgsl_cmdbatch *cmdbatch,
 			int timestamp,
 			int flags,
 			int result,
 			unsigned int type),
 
-	TP_ARGS(device, drawctxt_id, ibdesc, numibs, timestamp, flags,
+	TP_ARGS(device, drawctxt_id, cmdbatch, timestamp, flags,
 		result, type),
 
 	TP_STRUCT__entry(
@@ -61,8 +60,8 @@ TRACE_EVENT(kgsl_issueibcmds,
 	TP_fast_assign(
 		__assign_str(device_name, device->name);
 		__entry->drawctxt_id = drawctxt_id;
-		__entry->ibdesc_addr = ibdesc[0].gpuaddr;
-		__entry->numibs = numibs;
+		__entry->ibdesc_addr = cmdbatch->ibdesc[0].gpuaddr;
+		__entry->numibs = cmdbatch->ibcount;
 		__entry->timestamp = timestamp;
 		__entry->flags = flags;
 		__entry->result = result;
@@ -652,6 +651,28 @@ TRACE_EVENT(kgsl_context_detach,
 	)
 );
 
+TRACE_EVENT(kgsl_context_destroy,
+
+	TP_PROTO(struct kgsl_device *device, struct kgsl_context *context),
+
+	TP_ARGS(device, context),
+
+	TP_STRUCT__entry(
+		__string(device_name, device->name)
+		__field(unsigned int, id)
+	),
+
+	TP_fast_assign(
+		__assign_str(device_name, device->name);
+		__entry->id = context->id;
+	),
+
+	TP_printk(
+		"d_name=%s ctx=%u",
+		__get_str(device_name), __entry->id
+	)
+);
+
 TRACE_EVENT(kgsl_mmu_pagefault,
 
 	TP_PROTO(struct kgsl_device *device, unsigned int page,
@@ -740,6 +761,30 @@ TRACE_EVENT(kgsl_fire_event,
 		TP_printk(
 			"ctx=%d ts=%d type=%d age=%u",
 			__entry->id, __entry->ts, __entry->type, __entry->age)
+);
+
+TRACE_EVENT(kgsl_active_count,
+
+	TP_PROTO(struct kgsl_device *device, unsigned long ip),
+
+	TP_ARGS(device, ip),
+
+	TP_STRUCT__entry(
+		__string(device_name, device->name)
+		__field(unsigned int, count)
+		__field(unsigned long, ip)
+	),
+
+	TP_fast_assign(
+		__assign_str(device_name, device->name);
+		__entry->count = atomic_read(&device->active_cnt);
+		__entry->ip = ip;
+	),
+
+	TP_printk(
+		"d_name=%s active_cnt=%x func=%pf",
+		__get_str(device_name), __entry->count, (void *) __entry->ip
+	)
 );
 
 #endif /* _KGSL_TRACE_H */

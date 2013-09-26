@@ -23,8 +23,8 @@
 void kgsl_cffdump_init(void);
 void kgsl_cffdump_destroy(void);
 void kgsl_cffdump_open(struct kgsl_device *device);
-void kgsl_cffdump_close(enum kgsl_deviceid device_id);
-void kgsl_cffdump_syncmem(struct kgsl_device_private *dev_priv,
+void kgsl_cffdump_close(struct kgsl_device *device);
+void kgsl_cffdump_syncmem(struct kgsl_device *,
 	struct kgsl_memdesc *memdesc, uint physaddr, uint sizebytes,
 	bool clean_cache);
 void kgsl_cffdump_setmem(uint addr, uint value, uint sizebytes);
