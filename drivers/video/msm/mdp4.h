@@ -567,7 +567,7 @@ void mdp4_primary_rdptr(void);
 void mdp4_dsi_cmd_overlay(struct msm_fb_data_type *mfd);
 int mdp4_overlay_commit(struct fb_info *info);
 void mdp4_overlay_commit_finish(struct fb_info *info);
-int mdp4_dsi_video_pipe_commit(int cndx, int wait);
+int mdp4_dsi_video_pipe_commit(int cndx, int wait, u32 *release_busy);
 int mdp4_dsi_cmd_pipe_commit(int cndx, int wait, u32 *release_busy);
 int mdp4_lcdc_pipe_commit(int cndx, int wait);
 int mdp4_dtv_pipe_commit(int cndx, int wait);
