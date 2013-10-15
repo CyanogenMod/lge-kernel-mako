@@ -973,14 +973,12 @@ adreno_ringbuffer_issueibcmds(struct kgsl_device_private *dev_priv,
 	int ret = 0;
 
 	if (device->state & KGSL_STATE_HUNG) {
-		ret = -EBUSY;
-		goto done;
+		return -EBUSY;
 	}
 
 	if (!(adreno_dev->ringbuffer.flags & KGSL_FLAGS_STARTED) ||
 	      context == NULL || ibdesc == 0 || numibs == 0) {
-		ret = -EINVAL;
-		goto done;
+		return -EINVAL;
 	}
 	drawctxt = context->devctxt;
 
@@ -988,8 +986,7 @@ adreno_ringbuffer_issueibcmds(struct kgsl_device_private *dev_priv,
 		KGSL_CTXT_ERR(device, "proc %s failed fault tolerance"
 			" will not accept commands for context %d\n",
 			drawctxt->pid_name, drawctxt->id);
-		ret = -EDEADLK;
-		goto done;
+		return -EDEADLK;
 	}
 
 	if (drawctxt->flags & CTXT_FLAGS_SKIP_EOF) {
@@ -1005,8 +1002,7 @@ adreno_ringbuffer_issueibcmds(struct kgsl_device_private *dev_priv,
 	cmds = link = kzalloc(sizeof(unsigned int) * (numibs * 3 + 4),
 				GFP_KERNEL);
 	if (!link) {
-		ret = -ENOMEM;
-		goto done;
+		return -ENOMEM;
 	}
 
 	/*When preamble is enabled, the preamble buffer with state restoration
@@ -1061,7 +1057,8 @@ adreno_ringbuffer_issueibcmds(struct kgsl_device_private *dev_priv,
 				"less than last issued ts <%d:0x%x>\n",
 				drawctxt->id, *timestamp, drawctxt->id,
 				drawctxt->timestamp);
-			return -ERANGE;
+			ret = -ERANGE;
+			goto done;
 		}
 		drawctxt->timestamp = *timestamp;
 	} else
