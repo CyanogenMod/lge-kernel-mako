@@ -150,9 +150,9 @@ static int mdp4_map_sec_resource(struct msm_fb_data_type *mfd)
 		return -ENODEV;
 	}
 
-	pr_debug("%s %d mfd->index=%d,mapped=%d,active=%d\n",
+	pr_debug("%s %d mfd->index=%d,mapped=%d\n",
 		__func__, __LINE__,
-		 mfd->index, mfd->sec_mapped, mfd->sec_active);
+		 mfd->index, mfd->sec_mapped);
 
 	if (mfd->sec_mapped)
 		return 0;
@@ -175,18 +175,31 @@ static int mdp4_map_sec_resource(struct msm_fb_data_type *mfd)
 int mdp4_unmap_sec_resource(struct msm_fb_data_type *mfd)
 {
 	int ret = 0;
+	int i, sec_cnt = 0;
+	struct mdp4_overlay_pipe *pipe;
+
 
 	if (!mfd) {
 		pr_err("%s: mfd is invalid\n", __func__);
 		return -ENODEV;
 	}
 
-	if ((mfd->sec_mapped == 0) || (mfd->sec_active))
+	if (mfd->sec_mapped == 0)
 		return 0;
 
-	pr_debug("%s %d mfd->index=%d,mapped=%d,active=%d\n",
+	for (i = 0; i < OVERLAY_PIPE_MAX; i++) {
+		pipe = &ctrl->plist[i];
+		if ((pipe->mixer_num == mfd->index) &&
+				pipe->flags & MDP_SECURE_OVERLAY_SESSION)
+			sec_cnt++;
+	}
+
+	if (sec_cnt)
+		return 0;
+
+	pr_debug("%s %d mfd->index=%d,mapped=%d\n",
 		__func__, __LINE__,
-		 mfd->index, mfd->sec_mapped, mfd->sec_active);
+		 mfd->index, mfd->sec_mapped);
 
 	ret = mdp_enable_iommu_clocks();
 	if (ret) {
@@ -1026,29 +1039,8 @@ void mdp4_overlay_vg_setup(struct mdp4_overlay_pipe *pipe)
 	outpdw(vg_base + 0x0008, dst_size);	/* MDP_RGB_DST_SIZE */
 	outpdw(vg_base + 0x000c, dst_xy);	/* MDP_RGB_DST_XY */
 
-	if (pipe->frame_format != MDP4_FRAME_FORMAT_LINEAR) {
-		struct mdp4_overlay_pipe *real_pipe;
-		u32 psize, csize;
-
-		/*
-		 * video tile frame size register is NOT double buffered.
-		 * when this register updated, it kicks in immediatly
-		 * During transition from smaller resolution to higher
-		 * resolution  it may have possibility that mdp still fetch
-		 * from smaller resolution buffer with new higher resolution
-		 * frame size. This will cause iommu page fault.
-		 */
-		real_pipe = mdp4_overlay_ndx2pipe(pipe->pipe_ndx);
-		psize = real_pipe->prev_src_height * real_pipe->prev_src_width;
-		csize = pipe->src_height * pipe->src_width;
-		if (psize && (csize > psize)) {
-			frame_size = (real_pipe->prev_src_height << 16 |
-					real_pipe->prev_src_width);
-		}
+	if (pipe->frame_format != MDP4_FRAME_FORMAT_LINEAR)
 		outpdw(vg_base + 0x0048, frame_size);	/* TILE frame size */
-		real_pipe->prev_src_height = pipe->src_height;
-		real_pipe->prev_src_width = pipe->src_width;
-	}
 
 	/*
 	 * Adjust src X offset to avoid MDP from overfetching pixels
@@ -3555,7 +3547,6 @@ int mdp4_overlay_set(struct fb_info *info, struct mdp_overlay *req)
 
 	if (pipe->flags & MDP_SECURE_OVERLAY_SESSION) {
 		mdp4_map_sec_resource(mfd);
-		mfd->sec_active = TRUE;
 	}
 
 	/* return id back to user */
@@ -3671,8 +3662,6 @@ int mdp4_overlay_unset(struct fb_info *info, int ndx)
 
 	mdp4_stat.overlay_unset[pipe->mixer_num]++;
 
-	if (pipe->flags & MDP_SECURE_OVERLAY_SESSION)
-		mfd->sec_active = FALSE;
 	mdp4_overlay_pipe_free(pipe, 0);
 
 	mutex_unlock(&mfd->dma->ov_mutex);

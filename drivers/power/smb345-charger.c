@@ -104,8 +104,8 @@
 #define WPC_INIT_DET_INTERVAL	(22 * HZ)
 #define WPC_SET_CURT_LIMIT_CNT	6
 #define BAT_Cold_Limit 0
-#define BAT_Hot_Limit 55
-#define BAT_Mid_Temp_Wired 50
+#define BAT_Hot_Limit 45
+#define BAT_Mid_Temp_Wired 45
 #define BAT_Mid_Temp_Wireless 40
 #define FLOAT_VOLT 0x2A
 #define FLOAT_VOLT_LOW 0x1E
@@ -453,17 +453,7 @@ error:
 
 static irqreturn_t smb345_inok_isr(int irq, void *dev_id)
 {
-	struct smb345_charger *smb = dev_id;
-	int status = gpio_get_value(GPIO_AC_OK);
-
-	SMB_NOTICE("VBUS_DET = %s\n", status ? "H" : "L");
-
-	if (ac_on && !status)
-		queue_delayed_work(smb345_wq, &smb->cable_det_work, 0);
-	else {
-		if (delayed_work_pending(&charger->cable_det_work))
-			cancel_delayed_work(&charger->cable_det_work);
-	}
+	SMB_NOTICE("VBUS_DET = %s\n", gpio_get_value(GPIO_AC_OK) ? "H" : "L");
 
 	return IRQ_HANDLED;
 }
@@ -654,12 +644,9 @@ static void wireless_set_current_function(struct work_struct *dat)
 	queue_delayed_work(smb345_wq, &charger->wireless_set_current_work, WPC_SET_CURT_INTERVAL);
 }
 
-static void cable_det_work_function(struct work_struct *dat)
+void reconfig_AICL(void)
 {
 	struct i2c_client *client = charger->client;
-
-	if (delayed_work_pending(&charger->cable_det_work))
-		cancel_delayed_work(&charger->cable_det_work);
 
 	if (ac_on && !gpio_get_value(GPIO_AC_OK)) {
 		int retval;
@@ -668,7 +655,7 @@ static void cable_det_work_function(struct work_struct *dat)
 			dev_err(&client->dev, "%s(): Failed in reading 0x%02x",
 			__func__, smb345_STS_REG_E);
 		else {
-			SMB_NOTICE("Status Reg E=0x02%x\n", retval);
+			SMB_NOTICE("Status Reg E=0x%02x\n", retval);
 
 			if ((retval & 0xF) <= 0x1) {
 				SMB_NOTICE("reconfig input current limit\n");
@@ -677,6 +664,7 @@ static void cable_det_work_function(struct work_struct *dat)
 		}
 	}
 }
+EXPORT_SYMBOL(reconfig_AICL);
 
 static int smb345_inok_irq(struct smb345_charger *smb)
 {
@@ -1107,6 +1095,7 @@ int smb345_config_thermal_charging(int temp, int volt, int rule)
 	else if (rule == THERMAL_RULE2)
 		BAT_Mid_Temp = BAT_Mid_Temp_Wireless;
 
+	mdelay(100);
 	smb345_config_thermal_limit();
 
 	SMB_NOTICE("temp=%d, volt=%d\n", temp, volt);
@@ -1242,8 +1231,6 @@ static int __devinit smb345_probe(struct i2c_client *client,
 		wireless_det_work_function);
 	INIT_DELAYED_WORK_DEFERRABLE(&charger->wireless_set_current_work,
 		wireless_set_current_function);
-	INIT_DELAYED_WORK_DEFERRABLE(&charger->cable_det_work,
-		cable_det_work_function);
 
 	wake_lock_init(&charger_wakelock, WAKE_LOCK_SUSPEND,
 			"charger_configuration");

@@ -27,7 +27,6 @@
 
 struct kgsl_device;
 struct kgsl_device_private;
-struct adreno_ft_data;
 
 #define GSL_RB_MEMPTRS_SCRATCH_COUNT	 8
 struct kgsl_rbmemptrs {
@@ -54,17 +53,16 @@ struct adreno_ringbuffer {
 	unsigned int sizedwords;
 
 	unsigned int wptr; /* write pointer offset in dwords from baseaddr */
-	unsigned int rptr; /* read pointer offset in dwords from baseaddr */
 
 	unsigned int global_ts;
 };
 
 
-#define GSL_RB_WRITE(ring, gpuaddr, data) \
+#define GSL_RB_WRITE(device, ring, gpuaddr, data) \
 	do { \
 		*ring = data; \
 		wmb(); \
-		kgsl_cffdump_setmem(gpuaddr, data, 4); \
+		kgsl_cffdump_setmem(device, gpuaddr, data, 4); \
 		ring++; \
 		gpuaddr += sizeof(uint); \
 	} while (0)
@@ -74,10 +72,20 @@ struct adreno_ringbuffer {
 
 /* mem rptr */
 #define GSL_RB_CNTL_NO_UPDATE 0x0 /* enable */
-#define GSL_RB_GET_READPTR(rb, data) \
-	do { \
-		*(data) = rb->memptrs->rptr; \
-	} while (0)
+
+/**
+ * adreno_get_rptr - Get the current ringbuffer read pointer
+ * @rb -  the ringbuffer
+ *
+ * Get the current read pointer, which is written by the GPU.
+ */
+static inline unsigned int
+adreno_get_rptr(struct adreno_ringbuffer *rb)
+{
+	unsigned int result = rb->memptrs->rptr;
+	rmb();
+	return result;
+}
 
 #define GSL_RB_CNTL_POLL_EN 0x0 /* disable */
 
@@ -90,12 +98,15 @@ struct adreno_ringbuffer {
 
 int adreno_ringbuffer_issueibcmds(struct kgsl_device_private *dev_priv,
 				struct kgsl_context *context,
-				struct kgsl_ibdesc *ibdesc,
-				unsigned int numibs,
-				uint32_t *timestamp,
-				unsigned int flags);
+				struct kgsl_cmdbatch *cmdbatch,
+				uint32_t *timestamp);
+
+int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
+		struct kgsl_cmdbatch *cmdbatch);
 
 int adreno_ringbuffer_init(struct kgsl_device *device);
+
+int adreno_ringbuffer_warm_start(struct adreno_ringbuffer *rb);
 
 int adreno_ringbuffer_start(struct adreno_ringbuffer *rb);
 
@@ -112,13 +123,6 @@ unsigned int adreno_ringbuffer_issuecmds(struct kgsl_device *device,
 void adreno_ringbuffer_submit(struct adreno_ringbuffer *rb);
 
 void kgsl_cp_intrcallback(struct kgsl_device *device);
-
-void adreno_ringbuffer_extract(struct adreno_ringbuffer *rb,
-				struct adreno_ft_data *ft_data);
-
-void
-adreno_ringbuffer_restore(struct adreno_ringbuffer *rb, unsigned int *rb_buff,
-			int num_rb_contents);
 
 unsigned int *adreno_ringbuffer_allocspace(struct adreno_ringbuffer *rb,
 						struct adreno_context *context,

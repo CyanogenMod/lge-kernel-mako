@@ -247,7 +247,7 @@ static void enable_cap1106_regulator(void) {
 #define HOLE_SIZE		0x20000
 #define MSM_CONTIG_MEM_SIZE  0x65000
 #ifdef CONFIG_MSM_IOMMU
-#define MSM_ION_MM_SIZE		0x4C00000
+#define MSM_ION_MM_SIZE		0x5C00000
 #define MSM_ION_SF_SIZE		0
 #define MSM_ION_QSECOM_SIZE	0x780000 /* (7.5MB) */
 #define MSM_ION_HEAP_NUM	8
@@ -3248,10 +3248,10 @@ static struct i2c_registry i2c_anx7808_devices __initdata = {
 static void __init add_i2c_anx7808_device(void)
 {
 	if (machine_is_apq8064_flo()) {
-		anx7808_pdata.phy_reg2 = 0x39;
-		anx7808_pdata.phy_reg12 = 0x09;
+		anx7808_pdata.phy_reg2 = 0x3f;
+		anx7808_pdata.phy_reg12 = 0x10;
 		anx7808_pdata.phy_reg6 = 0x3f;
-		anx7808_pdata.phy_reg16 = 0x1d;
+		anx7808_pdata.phy_reg16 = 0x1f;
 	} else if (machine_is_apq8064_deb()) {
 		anx7808_pdata.phy_reg2 = 0x3a;
 		anx7808_pdata.phy_reg12 = 0x09;

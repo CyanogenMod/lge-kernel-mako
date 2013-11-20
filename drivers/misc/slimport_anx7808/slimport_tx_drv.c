@@ -1187,7 +1187,6 @@ static void sp_tx_enable_audio_output(unchar benable)
 	sp_read_reg(TX_P0, SP_TX_AUD_CTRL, &c);
 
 	if (benable) {
-		sp_read_reg(TX_P0, SP_TX_AUD_CTRL, &c);
 		if (c&AUD_EN) {
 			c &= ~AUD_EN;
 			sp_write_reg(TX_P0, SP_TX_AUD_CTRL, c);
@@ -2307,7 +2306,7 @@ void sp_tx_edid_read(void)
 	bedid_break = 0;
 	sp_tx_addronly_set(1);
 	sp_write_reg(TX_P0, SP_TX_AUX_CTRL_REG, 0x04);
-	sp_write_reg(TX_P0, SP_TX_AUX_CTRL_REG2, 0x01);
+	sp_write_reg(TX_P0, SP_TX_AUX_CTRL_REG2, 0x03);
 	sp_tx_wait_aux_finished();
 
 	edid_block = sp_tx_get_edid_block();
@@ -3193,7 +3192,7 @@ static void hdmi_rx_restart_audio_chk(void)
 	SP_DEV_DBG("WAIT_AUDIO: hdmi_rx_restart_audio_chk.\n");
 	g_cts_got = 0;
 	g_audio_got = 0;
-	if (hdmi_system_state == HDMI_AUDIO_CONFIG)
+	if (hdmi_system_state > HDMI_AUDIO_CONFIG)
 		hdmi_rx_set_sys_state(HDMI_AUDIO_CONFIG);
 }
 
@@ -3674,7 +3673,7 @@ static void hdmi_rx_hdmi_dvi_int(void)
 		SP_DEV_NOTICE("hdmi_rx_hdmi_dvi_int: HDMI MODE.");
 
 		if (hdmi_system_state == HDMI_PLAYBACK)
-			hdmi_rx_set_sys_state(HDMI_AUDIO_CONFIG);
+			hdmi_rx_restart_audio_chk();
 	} else {
 		hdmi_rx_unmute_audio();
 	}

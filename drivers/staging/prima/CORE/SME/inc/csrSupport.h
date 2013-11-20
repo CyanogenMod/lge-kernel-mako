@@ -40,13 +40,15 @@
  */
 
 /** ------------------------------------------------------------------------- * 
+    ------------------------------------------------------------------------- *  
 
+  
     \file csrSupport.h
-
+  
     Exports and types for the Common Scan and Roaming supporting interfaces.
   
    Copyright (C) 2006 Airgo Networks, Incorporated
-
+ 
    ========================================================================== */
 #ifndef CSR_SUPPORT_H__
 #define CSR_SUPPORT_H__
@@ -591,9 +593,7 @@ typedef __ani_attr_pre_packed struct tagCsrRSNCapabilities
     tANI_U16 NoPairwise:1;
     tANI_U16 PTKSAReplayCounter:2;
     tANI_U16 GTKSAReplayCounter:2;
-    tANI_U16 MFPRequired:1;
-    tANI_U16 MFPCapable:1;
-    tANI_U16 Reserved:8;
+    tANI_U16 Reserved:10;
 } __ani_attr_packed tCsrRSNCapabilities;
 
 typedef __ani_attr_pre_packed struct tagCsrRSNPMKIe 
@@ -827,7 +827,7 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
 eHalStatus csrUpdatep2pBeaconInterval(tpAniSirGlobal pMac);
 
 //BeaconInterval validation for MCC support
-eHalStatus csrValidateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId, 
+eHalStatus csrValidateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
                                      tANI_U16 *beaconInterval, tANI_U32 cursessionId,
                                      tVOS_CON_MODE currBssPersona);
 
