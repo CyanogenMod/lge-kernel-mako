@@ -37,6 +37,7 @@ struct dsi_cmd_desc local_power_on_set_1[28];
 
 static struct dsi_buf lgit_tx_buf;
 static struct dsi_buf lgit_rx_buf;
+static struct msm_fb_data_type *local_mfd;
 static int skip_init;
 static int lcd_isactive = 0;
 
@@ -79,6 +80,7 @@ static int mipi_lgit_lcd_on(struct platform_device *pdev)
 	pr_info("%s started\n", __func__);
 
 	mfd = platform_get_drvdata(pdev);
+	local_mfd = mfd;
 	if (!mfd)
 		return -ENODEV;
 	if (mfd->key != MFD_KEY)
@@ -181,6 +183,11 @@ static int mipi_lgit_lcd_off(struct platform_device *pdev)
 static void mipi_lgit_lcd_shutdown(void)
 {
 	int ret = 0;
+
+	if(local_mfd && !local_mfd->panel_power_on) {
+		pr_info("%s:panel is already off\n", __func__);
+		return;
+	}
 
 	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x10000000);
 	ret = mipi_dsi_cmds_tx(&lgit_tx_buf,
