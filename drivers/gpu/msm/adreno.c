@@ -1743,7 +1743,7 @@ static int adreno_start(struct kgsl_device *device)
 		goto error_rb_stop;
 
 	/* Start the dispatcher */
-	adreno_dispatcher_start(adreno_dev);
+	adreno_dispatcher_start(device);
 
 	device->reset_counter++;
 
@@ -2411,14 +2411,13 @@ int adreno_idle(struct kgsl_device *device)
  * adreno_drain() - Drain the dispatch queue
  * @device: Pointer to the KGSL device structure for the GPU
  *
- * Tell the dispatcher to pause - this has the effect of draining the inflight
- * command batches
+ * Drain the dispatcher of existing command batches.  This halts
+ * additional commands from being issued until the gate is completed.
  */
 static int adreno_drain(struct kgsl_device *device)
 {
-	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
+	INIT_COMPLETION(device->cmdbatch_gate);
 
-	adreno_dispatcher_pause(adreno_dev);
 	return 0;
 }
 
@@ -2720,8 +2719,17 @@ static long adreno_ioctl(struct kgsl_device_private *dev_priv,
 	}
 	case IOCTL_KGSL_PERFCOUNTER_GET: {
 		struct kgsl_perfcounter_get *get = data;
+		/*
+		 * adreno_perfcounter_get() is called by kernel clients
+		 * during start(), so it is not safe to take an
+		 * active count inside this function.
+		 */
+		result = kgsl_active_count_get(device);
+		if (result)
+			break;
 		result = adreno_perfcounter_get(adreno_dev, get->groupid,
 			get->countable, &get->offset, PERFCOUNTER_FLAG_NONE);
+		kgsl_active_count_put(device);
 		break;
 	}
 	case IOCTL_KGSL_PERFCOUNTER_PUT: {
@@ -2739,8 +2747,12 @@ static long adreno_ioctl(struct kgsl_device_private *dev_priv,
 	}
 	case IOCTL_KGSL_PERFCOUNTER_READ: {
 		struct kgsl_perfcounter_read *read = data;
+		result = kgsl_active_count_get(device);
+		if (result)
+			break;
 		result = adreno_perfcounter_read_group(adreno_dev,
 			read->reads, read->count);
+		kgsl_active_count_put(device);
 		break;
 	}
 	default:
@@ -2817,13 +2829,6 @@ static unsigned int adreno_gpuid(struct kgsl_device *device,
 	return (0x0003 << 16) | ((int) adreno_dev->gpurev);
 }
 
-static void adreno_resume(struct kgsl_device *device)
-{
-	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
-
-	adreno_dispatcher_resume(adreno_dev);
-}
-
 static const struct kgsl_functable adreno_functable = {
 	/* Mandatory functions */
 	.regread = adreno_regread,
@@ -2855,7 +2860,7 @@ static const struct kgsl_functable adreno_functable = {
 	.setproperty = adreno_setproperty,
 	.postmortem_dump = adreno_dump,
 	.drawctxt_sched = adreno_drawctxt_sched,
-	.resume = adreno_resume,
+	.resume = adreno_dispatcher_start,
 };
 
 static struct platform_driver adreno_platform_driver = {

@@ -3214,7 +3214,7 @@ static irqreturn_t msm_otg_acok_irq(int irq, void *dev_id)
 	struct msm_otg *motg = dev_id;
 
 	queue_delayed_work(msm_otg_acok_wq, &motg->acok_irq_work, 0.6*HZ);
-	wake_lock_timeout(&motg->wlock, 1*HZ);
+	wake_lock_timeout(&motg->cable_lock, 1*HZ);
 
 	return IRQ_HANDLED;
 }
@@ -3224,7 +3224,7 @@ static irqreturn_t msm_otg_id_pin_irq(int irq, void *dev_id)
 	struct msm_otg *motg = dev_id;
 
 	queue_delayed_work(msm_otg_id_pin_wq, &motg->id_pin_irq_work, 0.6*HZ);
-	wake_lock_timeout(&motg->wlock, 1*HZ);
+	wake_lock_timeout(&motg->cable_lock, 1*HZ);
 
 	return IRQ_HANDLED;
 }
@@ -3992,6 +3992,7 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 	if (ret)
 		dev_dbg(&pdev->dev, "MHL can not be supported\n");
 	wake_lock_init(&motg->wlock, WAKE_LOCK_SUSPEND, "msm_otg");
+	wake_lock_init(&motg->cable_lock, WAKE_LOCK_SUSPEND, "msm_cable_dectect");
 	msm_otg_init_timer(motg);
 	INIT_WORK(&motg->sm_work, msm_otg_sm_work);
 	INIT_DELAYED_WORK(&motg->chg_work, msm_chg_detect_work);
@@ -4122,6 +4123,7 @@ free_irq:
 	free_irq(motg->irq, motg);
 destroy_wlock:
 	wake_lock_destroy(&motg->wlock);
+	wake_lock_destroy(&motg->cable_lock);
 	clk_disable_unprepare(motg->core_clk);
 	msm_hsusb_ldo_enable(motg, 0);
 free_ldo_init:
@@ -4184,6 +4186,7 @@ static int __devexit msm_otg_remove(struct platform_device *pdev)
 	device_init_wakeup(&pdev->dev, 0);
 	pm_runtime_disable(&pdev->dev);
 	wake_lock_destroy(&motg->wlock);
+	wake_lock_destroy(&motg->cable_lock);
 
 #ifdef CONFIG_CHARGER_SMB345
 	msm_otg_id_pin_free(motg);
@@ -4335,12 +4338,12 @@ static int msm_otg_pm_resume(struct device *dev)
 #ifdef CONFIG_CHARGER_SMB345
 	if (gpio_get_value(vbus_det_gpio) != global_vbus_suspend_status) {
 		dev_info(dev, "%s: usb vbus change in suspend\n", __func__);
-		wake_lock_timeout(&motg->wlock, 1*HZ);
+		wake_lock_timeout(&motg->cable_lock, 1*HZ);
 	}
 
 	if (gpio_get_value(id_gpio) != global_id_pin_suspend_status) {
 		dev_info(dev, "%s: usb id pin change in suspend\n", __func__);
-		wake_lock_timeout(&motg->wlock, 1*HZ);
+		wake_lock_timeout(&motg->cable_lock, 1*HZ);
 	}
 #endif
 

@@ -126,7 +126,7 @@ enum coresight_debug_reg {
  */
 struct adreno_dispatcher {
 	struct mutex mutex;
-	unsigned int state;
+	unsigned long priv;
 	struct timer_list timer;
 	struct timer_list fault_timer;
 	unsigned int inflight;
@@ -138,6 +138,10 @@ struct adreno_dispatcher {
 	unsigned int tail;
 	struct work_struct work;
 	struct kobject kobj;
+};
+
+enum adreno_dispatcher_flags {
+	ADRENO_DISPATCHER_POWER = 0,
 };
 
 struct adreno_gpudev;
@@ -355,10 +359,6 @@ struct adreno_gpudev {
 
 	/* GPU specific function hooks */
 	int (*ctxt_create)(struct adreno_device *, struct adreno_context *);
-	int (*ctxt_save)(struct adreno_device *, struct adreno_context *);
-	int (*ctxt_restore)(struct adreno_device *, struct adreno_context *);
-	int (*ctxt_draw_workaround)(struct adreno_device *,
-					struct adreno_context *);
 	irqreturn_t (*irq_handler)(struct adreno_device *);
 	void (*irq_control)(struct adreno_device *, int);
 	unsigned int (*irq_pending)(struct adreno_device *);
@@ -405,6 +405,14 @@ struct log_field {
 #define KGSL_FT_PAGEFAULT_LOG_ONE_PER_PAGE   BIT(2)
 #define KGSL_FT_PAGEFAULT_LOG_ONE_PER_INT    BIT(3)
 #define KGSL_FT_PAGEFAULT_DEFAULT_POLICY     KGSL_FT_PAGEFAULT_INT_ENABLE
+
+#define ADRENO_FT_TYPES \
+	{ BIT(KGSL_FT_OFF), "off" }, \
+	{ BIT(KGSL_FT_REPLAY), "replay" }, \
+	{ BIT(KGSL_FT_SKIPIB), "skipib" }, \
+	{ BIT(KGSL_FT_SKIPFRAME), "skipframe" }, \
+	{ BIT(KGSL_FT_DISABLE), "disable" }, \
+	{ BIT(KGSL_FT_TEMP_DISABLE), "temp" }
 
 #define ADRENO_FT_TYPES \
 	{ BIT(KGSL_FT_OFF), "off" }, \
@@ -477,7 +485,7 @@ struct kgsl_memdesc *adreno_find_ctxtmem(struct kgsl_device *device,
 void *adreno_snapshot(struct kgsl_device *device, void *snapshot, int *remain,
 		int hang);
 
-void adreno_dispatcher_start(struct adreno_device *adreno_dev);
+void adreno_dispatcher_start(struct kgsl_device *device);
 int adreno_dispatcher_init(struct adreno_device *adreno_dev);
 void adreno_dispatcher_close(struct adreno_device *adreno_dev);
 int adreno_dispatcher_idle(struct adreno_device *adreno_dev,
@@ -491,7 +499,6 @@ int adreno_dispatcher_queue_cmd(struct adreno_device *adreno_dev,
 
 void adreno_dispatcher_schedule(struct kgsl_device *device);
 void adreno_dispatcher_pause(struct adreno_device *adreno_dev);
-void adreno_dispatcher_resume(struct adreno_device *adreno_dev);
 void adreno_dispatcher_queue_context(struct kgsl_device *device,
 	struct adreno_context *drawctxt);
 int adreno_reset(struct kgsl_device *device);
