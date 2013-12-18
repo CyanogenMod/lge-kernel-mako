@@ -333,7 +333,10 @@ asmlinkage void __cpuinit secondary_start_kernel(void)
 	 * switch away from it before attempting any exclusive accesses.
 	 */
 	cpu_switch_mm(mm->pgd, mm);
+<<<<<<< HEAD
 	local_flush_bp_all();
+=======
+>>>>>>> d9109d6... Linux 3.4.17
 	enter_lazy_tlb(mm, current);
 	local_flush_tlb_all();
 
@@ -345,8 +348,11 @@ asmlinkage void __cpuinit secondary_start_kernel(void)
 	atomic_inc(&mm->mm_count);
 	current->active_mm = mm;
 	cpumask_set_cpu(cpu, mm_cpumask(mm));
+<<<<<<< HEAD
 
 	cpu_init();
+=======
+>>>>>>> d9109d6... Linux 3.4.17
 
 	pr_debug("CPU%u: Booted secondary processor\n", cpu);
 
