@@ -668,6 +668,12 @@ static int uio_mmap_physical(struct vm_area_struct *vma)
 	if (mi < 0)
 		return -EINVAL;
 	mem = idev->info->mem + mi;
+<<<<<<< HEAD
+=======
+
+	if (vma->vm_end - vma->vm_start > mem->size)
+		return -EINVAL;
+>>>>>>> 4846bb7... Linux 3.4.71
 
 	if (vma->vm_end - vma->vm_start > mem->size)
 		return -EINVAL;
@@ -684,7 +690,10 @@ static int uio_mmap_physical(struct vm_area_struct *vma)
 	 * So we just do the physical mmap without a page
 	 * offset.
 	 */
+<<<<<<< HEAD
 
+=======
+>>>>>>> 4846bb7... Linux 3.4.71
 	return remap_pfn_range(vma,
 			       vma->vm_start,
 			       mem->addr >> PAGE_SHIFT,
