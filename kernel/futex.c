@@ -806,7 +806,11 @@ static int futex_lock_pi_atomic(u32 __user *uaddr, struct futex_hash_bucket *hb,
 				struct futex_pi_state **ps,
 				struct task_struct *task, int set_waiters)
 {
+<<<<<<< HEAD
 	int lock_taken, ret, ownerdied = 0;
+=======
+	int lock_taken, ret, force_take = 0;
+>>>>>>> ffef331... Linux 3.4.19
 	u32 uval, newval, curval, vpid = task_pid_vnr(task);
 
 retry:
@@ -831,6 +835,7 @@ retry:
 		return -EDEADLK;
 
 	/*
+<<<<<<< HEAD
 	 * Surprise - we got the lock, but we do not trust user space at all.
 	 */
 	if (unlikely(!curval)) {
@@ -864,6 +869,31 @@ retry:
 		/* Keep the OWNER_DIED bit */
 		newval = (curval & ~FUTEX_TID_MASK) | vpid;
 		ownerdied = 0;
+=======
+	 * Surprise - we got the lock. Just return to userspace:
+	 */
+	if (unlikely(!curval))
+		return 1;
+
+	uval = curval;
+
+	/*
+	 * Set the FUTEX_WAITERS flag, so the owner will know it has someone
+	 * to wake at the next unlock.
+	 */
+	newval = curval | FUTEX_WAITERS;
+
+	/*
+	 * Should we force take the futex? See below.
+	 */
+	if (unlikely(force_take)) {
+		/*
+		 * Keep the OWNER_DIED and the WAITERS bit and set the
+		 * new TID value.
+		 */
+		newval = (curval & ~FUTEX_TID_MASK) | vpid;
+		force_take = 0;
+>>>>>>> ffef331... Linux 3.4.19
 		lock_taken = 1;
 	}
 
@@ -873,7 +903,11 @@ retry:
 		goto retry;
 
 	/*
+<<<<<<< HEAD
 	 * We took the lock due to owner died take over.
+=======
+	 * We took the lock due to forced take over.
+>>>>>>> ffef331... Linux 3.4.19
 	 */
 	if (unlikely(lock_taken))
 		return 1;
@@ -888,20 +922,40 @@ retry:
 		switch (ret) {
 		case -ESRCH:
 			/*
+<<<<<<< HEAD
 			 * No owner found for this futex. Check if the
 			 * OWNER_DIED bit is set to figure out whether
 			 * this is a robust futex or not.
+=======
+			 * We failed to find an owner for this
+			 * futex. So we have no pi_state to block
+			 * on. This can happen in two cases:
+			 *
+			 * 1) The owner died
+			 * 2) A stale FUTEX_WAITERS bit
+			 *
+			 * Re-read the futex value.
+>>>>>>> ffef331... Linux 3.4.19
 			 */
 			if (get_futex_value_locked(&curval, uaddr))
 				return -EFAULT;
 
 			/*
+<<<<<<< HEAD
 			 * We simply start over in case of a robust
 			 * futex. The code above will take the futex
 			 * and return happy.
 			 */
 			if (curval & FUTEX_OWNER_DIED) {
 				ownerdied = 1;
+=======
+			 * If the owner died or we have a stale
+			 * WAITERS bit the owner TID in the user space
+			 * futex is 0.
+			 */
+			if (!(curval & FUTEX_TID_MASK)) {
+				force_take = 1;
+>>>>>>> ffef331... Linux 3.4.19
 				goto retry;
 			}
 		default:
