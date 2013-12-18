@@ -329,9 +329,13 @@ void machine_shutdown(void)
  */
 void machine_halt(void)
 {
+<<<<<<< HEAD
 	preempt_disable();
 	smp_send_stop();
 
+=======
+	machine_shutdown();
+>>>>>>> 9731902... Linux 3.4.9
 	local_irq_disable();
 	while (1);
 }
@@ -376,6 +380,7 @@ void machine_restart(char *cmd)
 
 	/* Whoops - the platform was unable to reboot. Tell the user! */
 	printk("Reboot failed -- System halted\n");
+	local_irq_disable();
 	while (1);
 }
 

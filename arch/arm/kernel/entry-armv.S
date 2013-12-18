@@ -528,6 +528,10 @@ ENDPROC(__und_usr)
  *  r9  = normal "successful" return address
  *  r10 = this threads thread_info structure.
  *  lr  = unrecognised instruction return address
+<<<<<<< HEAD
+=======
+ * IRQs disabled, FIQs enabled.
+>>>>>>> 9731902... Linux 3.4.9
  */
 	@
 	@ Fall-through from Thumb-2 __und_usr
@@ -662,8 +666,17 @@ ENTRY(no_fp)
 	mov	pc, lr
 ENDPROC(no_fp)
 
+<<<<<<< HEAD
 __und_usr_unknown:
 	enable_irq
+=======
+__und_usr_fault_32:
+	mov	r1, #4
+	b	1f
+__und_usr_fault_16:
+	mov	r1, #2
+1:	enable_irq
+>>>>>>> 9731902... Linux 3.4.9
 	mov	r0, sp
 	adr	lr, BSYM(ret_from_exception)
 	b	do_undefinstr
