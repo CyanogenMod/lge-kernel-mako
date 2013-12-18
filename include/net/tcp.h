@@ -255,6 +255,7 @@ extern int sysctl_tcp_cookie_size;
 extern int sysctl_tcp_thin_linear_timeouts;
 extern int sysctl_tcp_thin_dupack;
 extern int sysctl_tcp_default_init_rwnd;
+extern int sysctl_tcp_challenge_ack_limit;
 
 extern atomic_long_t tcp_memory_allocated;
 
