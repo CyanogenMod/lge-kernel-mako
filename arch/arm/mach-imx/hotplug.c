@@ -66,6 +66,10 @@ static inline void cpu_leave_lowpower(void)
 void platform_cpu_die(unsigned int cpu)
 {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+	cpu_enter_lowpower();
+>>>>>>> 5665a13... Linux 3.4.4
 =======
 	cpu_enter_lowpower();
 >>>>>>> 5665a13... Linux 3.4.4
