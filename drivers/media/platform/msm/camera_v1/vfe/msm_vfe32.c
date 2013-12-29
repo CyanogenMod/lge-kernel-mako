@@ -4949,7 +4949,6 @@ fs_failed:
 	iounmap(axi_ctrl->share_ctrl->vfebase);
 	axi_ctrl->share_ctrl->vfebase = NULL;
 remap_failed:
-	disable_irq(axi_ctrl->vfeirq->start);
 mctl_failed:
 	return rc;
 }

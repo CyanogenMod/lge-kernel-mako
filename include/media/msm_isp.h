@@ -322,6 +322,8 @@ struct msm_mctl_pp_divert_pp {
 struct msm_vpe_clock_rate {
 	uint32_t rate;
 };
+
+#ifdef CONFIG_MSMB_CAMERA
 struct msm_pp_crop {
 	uint32_t src_x;
 	uint32_t src_y;
@@ -333,8 +335,6 @@ struct msm_pp_crop {
 	uint32_t dst_h;
 	uint8_t update_flag;
 };
-#define MSM_MCTL_PP_VPE_FRAME_ACK    (1<<0)
-#define MSM_MCTL_PP_VPE_FRAME_TO_APP (1<<1)
 
 struct msm_mctl_pp_frame_cmd {
 	uint32_t cookie;
@@ -345,6 +345,11 @@ struct msm_mctl_pp_frame_cmd {
 	int path;
 	/* TBD: 3D related */
 };
+#endif
+
+#define MSM_MCTL_PP_VPE_FRAME_ACK    (1<<0)
+#define MSM_MCTL_PP_VPE_FRAME_TO_APP (1<<1)
+
 
 #define VFE_OUTPUTS_MAIN_AND_PREVIEW    BIT(0)
 #define VFE_OUTPUTS_MAIN_AND_VIDEO      BIT(1)
