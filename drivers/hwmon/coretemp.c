@@ -192,8 +192,11 @@ static ssize_t show_temp(struct device *dev,
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 static int __cpuinit adjust_tjmax(struct cpuinfo_x86 *c, u32 id,
 =======
+=======
+>>>>>>> 18a7828... Linux 3.4.87
 struct tjmax {
 	char const *id;
 	int tjmax;
