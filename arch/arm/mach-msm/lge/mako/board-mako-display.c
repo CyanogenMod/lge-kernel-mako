@@ -277,6 +277,16 @@ void __init apq8064_mdp_writeback(struct memtype_reserve* reserve_table)
 #ifdef CONFIG_LCD_KCAL
 int kcal_set_values(int kcal_r, int kcal_g, int kcal_b)
 {
+	if (kcal_r > 255 || kcal_r < 0)
+		kcal_r = kcal_r < 0 ? 0 : kcal_r;
+		kcal_r = kcal_r > 255 ? 255 : kcal_r;
+	if (kcal_g > 255 || kcal_g < 0)
+		kcal_g = kcal_g < 0 ? 0 : kcal_g;
+		kcal_g = kcal_g > 255 ? 255 : kcal_g;
+	if (kcal_b > 255 || kcal_b < 0)
+		kcal_b = kcal_b < 0 ? 0 : kcal_b;
+		kcal_b = kcal_b > 255 ? 255 : kcal_b;
+
 	kcal_value.red = kcal_r;
 	kcal_value.green = kcal_g;
 	kcal_value.blue = kcal_b;
