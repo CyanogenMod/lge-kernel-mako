@@ -42,6 +42,7 @@
 #include <linux/delay.h>
 #include <linux/fs.h>
 #include <linux/cpuset.h>
+#include <linux/show_mem_notifier.h>
 
 #ifdef CONFIG_HIGHMEM
 #define _ZONE ZONE_HIGHMEM
@@ -411,6 +412,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		if (lowmem_debug_level >= 2 && selected_oom_score_adj == 0) {
 			show_mem(SHOW_MEM_FILTER_NODES);
 			dump_tasks(NULL, NULL);
+			show_mem_call_notifiers();
 		}
 
 		lowmem_deathpending_timeout = jiffies + HZ;
