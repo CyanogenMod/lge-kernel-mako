@@ -963,8 +963,15 @@ grow_dev_page(struct block_device *bdev, sector_t block,
 	if (page_has_buffers(page)) {
 		bh = page_buffers(page);
 		if (bh->b_size == size) {
+<<<<<<< HEAD
 			init_page_buffers(page, bdev, block, size);
 			return page;
+=======
+			end_block = init_page_buffers(page, bdev,
+						(sector_t)index << sizebits,
+						size);
+			goto done;
+>>>>>>> 46f3cd4... Linux 3.4.105
 		}
 		if (!try_to_free_buffers(page))
 			goto failed;
@@ -984,7 +991,12 @@ grow_dev_page(struct block_device *bdev, sector_t block,
 	 */
 	spin_lock(&inode->i_mapping->private_lock);
 	link_dev_buffers(page, bh);
+<<<<<<< HEAD
 	init_page_buffers(page, bdev, block, size);
+=======
+	end_block = init_page_buffers(page, bdev, (sector_t)index << sizebits,
+			size);
+>>>>>>> 46f3cd4... Linux 3.4.105
 	spin_unlock(&inode->i_mapping->private_lock);
 	return page;
 
