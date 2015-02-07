@@ -1548,6 +1548,11 @@ retry_private:
 			goto out;
 		case -EAGAIN:
 			/* The owner was exiting, try again. */
+<<<<<<< HEAD
+=======
+			free_pi_state(pi_state);
+			pi_state = NULL;
+>>>>>>> 2be8715... Linux 3.4.106
 			double_unlock_hb(hb1, hb2);
 			put_futex_key(&key2);
 			put_futex_key(&key1);
