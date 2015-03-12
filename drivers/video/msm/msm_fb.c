@@ -278,6 +278,80 @@ int msm_fb_detect_client(const char *name)
 	return ret;
 }
 
+static ssize_t msm_fb_set_cabc(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct fb_info *fbi = dev_get_drvdata(dev);
+	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)fbi->par;
+	struct msm_fb_panel_data *pdata =
+		(struct msm_fb_panel_data *)mfd->pdev->dev.platform_data;
+	unsigned long val;
+	int ret;
+
+	ret = kstrtoul(buf, 10, &val);
+	if (ret)
+		return ret;
+
+	if (val < 0 || val > 3)
+		return -EINVAL;
+	if (pdata->set_cabc)
+		pdata->set_cabc(mfd->pdev, (u32)val);
+	return count;
+}
+
+static ssize_t msm_fb_get_cabc(struct device *dev,
+				  struct device_attribute *attr, char *buf)
+{
+	ssize_t ret = 0;
+	struct fb_info *fbi = dev_get_drvdata(dev);
+	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)fbi->par;
+	struct msm_fb_panel_data *pdata =
+		(struct msm_fb_panel_data *)mfd->pdev->dev.platform_data;
+
+    if (pdata->get_cabc)
+        ret = snprintf(buf, PAGE_SIZE, "%d\n", pdata->get_cabc(mfd->pdev));
+
+    return ret;
+}
+
+static ssize_t msm_fb_set_sre(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct fb_info *fbi = dev_get_drvdata(dev);
+	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)fbi->par;
+	struct msm_fb_panel_data *pdata =
+		(struct msm_fb_panel_data *)mfd->pdev->dev.platform_data;
+	unsigned long val;
+	int ret;
+
+	ret = kstrtoul(buf, 2, &val);
+	if (ret)
+		return ret;
+
+	if (val < 0 || val > 1)
+		return -EINVAL;
+	if (pdata->set_sre)
+		pdata->set_sre(mfd->pdev, val == 1);
+	return count;
+}
+
+static ssize_t msm_fb_get_sre(struct device *dev,
+				  struct device_attribute *attr, char *buf)
+{
+	ssize_t ret = 0;
+	struct fb_info *fbi = dev_get_drvdata(dev);
+	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)fbi->par;
+	struct msm_fb_panel_data *pdata =
+		(struct msm_fb_panel_data *)mfd->pdev->dev.platform_data;
+
+    if (pdata->get_sre)
+        ret = snprintf(buf, PAGE_SIZE, "%d", pdata->get_sre(mfd->pdev));
+
+    return ret;
+}
+
 static ssize_t msm_fb_fps_level_change(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
@@ -357,9 +431,14 @@ static ssize_t msm_fb_msm_fb_type(struct device *dev,
 static DEVICE_ATTR(msm_fb_type, S_IRUGO, msm_fb_msm_fb_type, NULL);
 static DEVICE_ATTR(msm_fb_fps_level, S_IRUGO | S_IWUSR, NULL, \
 				msm_fb_fps_level_change);
+static DEVICE_ATTR(cabc, S_IRUGO | S_IWUSR, msm_fb_get_cabc, msm_fb_set_cabc);
+static DEVICE_ATTR(sre, S_IRUGO | S_IWUSR, msm_fb_get_sre, msm_fb_set_sre);
+
 static struct attribute *msm_fb_attrs[] = {
 	&dev_attr_msm_fb_type.attr,
 	&dev_attr_msm_fb_fps_level.attr,
+	&dev_attr_cabc.attr,
+	&dev_attr_sre.attr,
 	NULL,
 };
 static struct attribute_group msm_fb_attr_group = {

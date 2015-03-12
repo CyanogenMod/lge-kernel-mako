@@ -17,4 +17,12 @@
 int mipi_JDI_device_register(struct msm_panel_info *pinfo,
 					u32 channel, u32 panel);
 
+enum {
+	CABC_OFF = 0x0,
+	CABC_LOW = 0x1,
+	CABC_MED = 0x2,
+	CABC_HIGH = 0x3,
+	CABC_SRE = 0x60,
+};
+
 #endif  /* MIPI_JDI_H */

@@ -51,6 +51,8 @@ static struct dsi_buf JDI_tx_buf;
 static struct dsi_buf JDI_rx_buf;
 static int mipi_JDI_lcd_init(void);
 
+static bool sre_enabled = false;
+
 static char sw_reset[2] = {0x01, 0x00}; /* DTYPE_DCS_WRITE */
 static char enter_sleep[2] = {0x10, 0x00}; /* DTYPE_DCS_WRITE */
 static char exit_sleep[2] = {0x11, 0x00}; /* DTYPE_DCS_WRITE */
@@ -84,6 +86,8 @@ static char backlight_control4[] = {0xCE, 0x7D, 0x40, 0x48, 0x56, 0x67, 0x78,
 /* for fps control, set fps to 60.32Hz */
 static char LTPS_timing_setting[2] = {0xC6, 0x78};
 static char sequencer_timing_control[2] = {0xD6, 0x01};
+
+static int cabc_level = 0x00;
 
 static struct dsi_cmd_desc JDI_display_on_cmds[] = {
 	{DTYPE_DCS_WRITE, 1, 0, 0, 5,
@@ -165,6 +169,11 @@ static char bl_value[2] = {0x51, 0x0};
 static struct dsi_cmd_desc backlight_cmd[] = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0,
 		sizeof(bl_value), bl_value}
+};
+
+static struct dsi_cmd_desc JDI_cabc_cmd[] = {
+	{DTYPE_DCS_WRITE1, 1, 0, 0, 0,
+		sizeof(write_cabc), write_cabc}
 };
 
 struct dcs_cmd_req cmdreq_JDI;
@@ -259,6 +268,47 @@ static void JDI_command_backlight(int level)
 	cmdreq_JDI.cb = NULL;
 	mipi_dsi_cmdlist_put(&cmdreq_JDI);
 }
+
+static void JDI_command_cabc(struct platform_device *pdev, int level)
+{
+	pr_debug("%s: level %d\n", __func__, level);
+	write_cabc[1] = (char) level;
+
+	/* mdp4_dsi_cmd_busy_wait: will turn on dsi clock also */
+	mipi_dsi_mdp_busy_wait();
+
+	cmdreq_JDI.cmds = JDI_cabc_cmd;
+	cmdreq_JDI.cmds_cnt = ARRAY_SIZE(JDI_cabc_cmd);
+	cmdreq_JDI.flags = CMD_REQ_COMMIT | CMD_CLK_CTRL;
+	cmdreq_JDI.rlen = 0;
+	cmdreq_JDI.cb = NULL;
+	mipi_dsi_cmdlist_put(&cmdreq_JDI);
+}
+
+static void mipi_JDI_set_cabc(struct platform_device *pdev, int level)
+{
+	if (level < CABC_OFF || level > CABC_HIGH)
+		return;
+
+	cabc_level = level;
+	if (!sre_enabled)
+		JDI_command_cabc(pdev, cabc_level);
+}
+
+static int mipi_JDI_get_cabc(struct platform_device *pdev) {
+	return cabc_level;
+}
+
+static void mipi_JDI_set_sre(struct platform_device *pdev, bool enabled)
+{
+	sre_enabled = enabled;
+	JDI_command_cabc(pdev, (enabled ? (int)CABC_SRE : cabc_level));
+}
+
+static int mipi_JDI_get_sre(struct platform_device *pdev) {
+	return sre_enabled;
+}
+
 static void mipi_JDI_set_backlight(struct msm_fb_data_type *mfd)
 {
 	int ret;
@@ -442,6 +492,10 @@ static struct msm_fb_panel_data JDI_panel_data = {
 	.off		= mipi_JDI_lcd_off,
 	.set_backlight = mipi_JDI_set_backlight,
 	.set_recovery_backlight = mipi_JDI_set_recovery_backlight,
+	.set_cabc	= mipi_JDI_set_cabc,
+	.get_cabc	= mipi_JDI_get_cabc,
+	.set_sre	= mipi_JDI_set_sre,
+	.get_sre	= mipi_JDI_get_sre,
 };
 
 static int ch_used[3];
