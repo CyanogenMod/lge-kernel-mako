@@ -151,7 +151,7 @@ struct platform_device msm8064_cpu_slp_status = {
 
 static struct msm_watchdog_pdata msm_watchdog_pdata = {
 	.pet_time = 10000,
-	.bark_time = 14000,
+	.bark_time = 45000,
 	.has_secure = true,
 	.needs_expired_enable = true,
 	.base = MSM_TMR0_BASE + WDT0_OFFSET,
