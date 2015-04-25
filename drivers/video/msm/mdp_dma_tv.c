@@ -114,7 +114,7 @@ void mdp_dma3_update(struct msm_fb_data_type *mfd)
 	int bpp;
 	unsigned long flag;
 
-	if (!mfd->panel_power_on)
+	if (mdp_fb_is_power_off(mfd))
 		return;
 
 	/* no need to power on cmd block since dma3 is running */

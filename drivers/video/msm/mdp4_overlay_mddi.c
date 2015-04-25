@@ -475,7 +475,7 @@ void mdp4_mddi_overlay_restore(void)
 
 	pr_debug("%s: resotre, pid=%d\n", __func__, current->pid);
 
-	if (mddi_mfd->panel_power_on == 0)
+	if (mdp_fb_is_power_off(mfd))
 		return;
 	if (mddi_mfd && mddi_pipe) {
 		mdp4_mddi_dma_busy_wait(mddi_mfd);
@@ -688,7 +688,7 @@ void mdp4_mddi_overlay(struct msm_fb_data_type *mfd)
 {
 	mutex_lock(&mfd->dma->ov_mutex);
 
-	if (mfd && mfd->panel_power_on) {
+	if (mfd && !mdp_fb_is_power_off(mfd)) {
 		mdp4_mddi_dma_busy_wait(mfd);
 
 		if (mddi_pipe && mddi_pipe->ov_blt_addr)
@@ -721,7 +721,7 @@ int mdp4_mddi_overlay_cursor(struct fb_info *info, struct fb_cursor *cursor)
 {
 	struct msm_fb_data_type *mfd = info->par;
 	mutex_lock(&mfd->dma->ov_mutex);
-	if (mfd && mfd->panel_power_on) {
+	if (mfd && !mdp_fb_is_power_off(mfd)) {
 		mdp4_mddi_dma_busy_wait(mfd);
 		mdp_hw_cursor_update(info, cursor);
 	}

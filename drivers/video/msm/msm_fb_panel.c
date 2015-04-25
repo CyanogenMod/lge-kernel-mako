@@ -103,6 +103,31 @@ int panel_next_fps_level_change(struct platform_device *pdev,
 	return ret;
 }
 
+int panel_next_low_power_config(struct platform_device *pdev,
+					 int enable)
+{
+	int ret = 0;
+	struct msm_fb_panel_data *pdata;
+	struct msm_fb_panel_data *next_pdata;
+	struct platform_device *next_pdev;
+
+	pdata = (struct msm_fb_panel_data *)pdev->dev.platform_data;
+
+	if (pdata) {
+		next_pdev = pdata->next;
+		if (next_pdev) {
+			next_pdata =
+			    (struct msm_fb_panel_data *)next_pdev->dev.
+			    platform_data;
+			if ((next_pdata) && (next_pdata->low_power_config))
+				ret = next_pdata->low_power_config(next_pdev,
+							 enable);
+		}
+	}
+
+	return ret;
+}
+
 int panel_next_late_init(struct platform_device *pdev)
 {
 	int ret = 0;

@@ -165,7 +165,7 @@ void mdp4_atv_overlay(struct msm_fb_data_type *mfd)
 	unsigned long flag;
 	struct mdp4_overlay_pipe *pipe;
 
-	if (!mfd->panel_power_on)
+	if (mdp_fb_is_power_off(mfd))
 		return;
 
 	/* no need to power on cmd block since it's lcdc mode */

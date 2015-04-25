@@ -152,7 +152,7 @@ static void mdp_set_vsync(unsigned long data)
 	if ((pdata) && (pdata->set_vsync_notifier == NULL))
 		return;
 
-	if ((mfd->panel_info.lcd.vsync_enable) && (mfd->panel_power_on)
+	if ((mfd->panel_info.lcd.vsync_enable) && (!mdp_fb_is_power_off(mfd))
 	    && (!mfd->vsync_handler_pending)) {
 		mfd->vsync_handler_pending = TRUE;
 		if (!queue_work(mdp_vsync_wq, &mfd->vsync_resync_worker)) {
@@ -162,7 +162,7 @@ static void mdp_set_vsync(unsigned long data)
 	} else {
 		MSM_FB_DEBUG
 		    ("mdp_set_vsync failed!  EN:%d  PWR:%d  PENDING:%d\n",
-		     mfd->panel_info.lcd.vsync_enable, mfd->panel_power_on,
+		     mfd->panel_info.lcd.vsync_enable, !mdp_fb_is_power_off(mfd),
 		     mfd->vsync_handler_pending);
 	}
 
@@ -189,7 +189,7 @@ static void mdp_vsync_handler(void *data)
 
 	if (mfd->use_mdp_vsync) {
 #ifdef MDP_HW_VSYNC
-		if (mfd->panel_power_on) {
+		if (!mdp_fb_is_power_off(mfd)) {
 			MDP_OUTP(MDP_BASE + MDP_SYNC_STATUS_0, vsync_load_cnt);
 
 #ifdef CONFIG_FB_MSM_MDP40
@@ -431,7 +431,7 @@ void mdp_vsync_resync_workqueue_handler(struct work_struct *work)
 	mfd = container_of(work, struct msm_fb_data_type, vsync_resync_worker);
 
 	if (mfd) {
-		if (mfd->panel_power_on) {
+		if (!mdp_fb_is_power_off(mfd)) {
 			pdata =
 			    (struct msm_fb_panel_data *)mfd->pdev->dev.
 			    platform_data;

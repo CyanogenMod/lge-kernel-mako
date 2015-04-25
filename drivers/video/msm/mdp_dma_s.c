@@ -136,7 +136,7 @@ static void mdp_dma_s_update_lcd(struct msm_fb_data_type *mfd)
 void mdp_dma_s_update(struct msm_fb_data_type *mfd)
 {
 	down(&mfd->dma->mutex);
-	if ((mfd) && (!mfd->dma->busy) && (mfd->panel_power_on)) {
+	if ((mfd) && (!mfd->dma->busy) && (!mdp_fb_is_power_off(mfd))) {
 		down(&mfd->sem);
 		mdp_enable_irq(MDP_DMA_S_TERM);
 		if (mfd->panel_info.type == MDDI_PANEL)

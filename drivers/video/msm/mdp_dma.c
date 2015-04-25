@@ -484,7 +484,7 @@ void mdp_dma2_update(struct msm_fb_data_type *mfd)
 	unsigned long flag;
 
 	down(&mfd->dma->mutex);
-	if ((mfd) && (!mfd->dma->busy) && (mfd->panel_power_on)) {
+	if ((mfd) && (!mfd->dma->busy) && (!mdp_fb_is_power_off(mfd))) {
 		down(&mfd->sem);
 		mfd->ibuf_flushed = TRUE;
 		mdp_dma2_update_lcd(mfd);
