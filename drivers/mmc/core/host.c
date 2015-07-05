@@ -28,7 +28,9 @@
 #include "core.h"
 #include "host.h"
 
+#ifdef CONFIG_KEYBOARD_GPIO
 #include <linux/gpio_keys.h>
+#endif
 
 #define cls_dev_to_mmc_host(d)	container_of(d, struct mmc_host, class_dev)
 
@@ -341,8 +343,10 @@ struct mmc_host *mmc_alloc_host(int extra, struct device *dev)
 #ifdef CONFIG_PM
 	host->pm_notify.notifier_call = mmc_pm_notify;
 #endif
+#ifdef CONFIG_KEYBOARD_GPIO
 	host->force_poweroff_notifier.notifier_call = force_poweroff_notify;
 	register_resetkey_notifier(&host->force_poweroff_notifier);
+#endif
 
 	/*
 	 * By default, hosts do not support SGIO or large requests.
