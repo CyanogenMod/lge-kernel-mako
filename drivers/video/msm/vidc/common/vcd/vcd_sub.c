@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2013, Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2013, 2015, Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1255,15 +1255,15 @@ u32 vcd_check_for_client_context(
 u32 vcd_validate_driver_handle(
 	struct vcd_dev_ctxt *dev_ctxt, s32 driver_handle)
 {
-	driver_handle--;
+	u32 result = false;
+	s32 driver_id = driver_handle - 1;
 
-	if (driver_handle < 0 ||
-		driver_handle >= VCD_DRIVER_CLIENTS_MAX ||
-		!dev_ctxt->driver_ids[driver_handle]) {
-		return false;
-	} else {
-		return true;
-	}
+	if ((0 <= driver_id) &&
+		(VCD_DRIVER_CLIENTS_MAX > driver_id) &&
+		(dev_ctxt->driver_ids[driver_id]))
+		result = true;
+
+	return result;
 }
 
 u32 vcd_client_cmd_en_q(
