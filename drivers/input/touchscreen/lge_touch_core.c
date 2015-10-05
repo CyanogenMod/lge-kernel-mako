@@ -1826,6 +1826,10 @@ static int touch_probe(struct i2c_client *client,
 			: ts->pdata->caps->y_max,
 			0, 0);
 
+	/* Perform device-specific initialisation before reading
+	   capabilities */
+	touch_ic_init(ts);
+
 	/* Copy for efficient handling */
 	is_pressure = ts->pdata->caps->is_pressure_supported;
 	is_width_major = ts->pdata->caps->is_width_major_supported;
@@ -1875,9 +1879,6 @@ static int touch_probe(struct i2c_client *client,
 			ktime_set(0, ts->pdata->role->report_period),
 					HRTIMER_MODE_REL);
 	}
-
-	/* Specific device initialization */
-	touch_ic_init(ts);
 
 	/* Firmware Upgrade Check - use thread for booting time reduction */
 	if (touch_device_func->fw_upgrade) {
