@@ -1798,6 +1798,7 @@ stat:
 out:
 	raw_spin_unlock_irqrestore(&p->pi_lock, flags);
 
+#ifndef CONFIG_UML
 	if (task_notify_on_migrate(p)) {
 		struct migration_notify_data mnd;
 
@@ -1817,6 +1818,7 @@ out:
 			atomic_notifier_call_chain(&migration_notifier_head,
 					   0, (void *)&mnd);
 	}
+#endif
 	return success;
 }
 
