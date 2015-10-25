@@ -421,16 +421,24 @@ int blk_alloc_devt(struct hd_struct *part, dev_t *devt)
 		if (!idr_pre_get(&ext_devt_idr, GFP_KERNEL))
 			return -ENOMEM;
 <<<<<<< HEAD
+<<<<<<< HEAD
 		rc = idr_get_new(&ext_devt_idr, part, &idx);
 =======
 		spin_lock(&ext_devt_lock);
+=======
+		spin_lock_bh(&ext_devt_lock);
+>>>>>>> 8572a42... Linux 3.4.109
 		rc = idr_get_new(&ext_devt_idr, part, &idx);
 		if (!rc && idx >= NR_EXT_DEVT) {
 			idr_remove(&ext_devt_idr, idx);
 			rc = -EBUSY;
 		}
+<<<<<<< HEAD
 		spin_unlock(&ext_devt_lock);
 >>>>>>> 46f3cd4... Linux 3.4.105
+=======
+		spin_unlock_bh(&ext_devt_lock);
+>>>>>>> 8572a42... Linux 3.4.109
 	} while (rc == -EAGAIN);
 
 	if (rc)
@@ -460,9 +468,9 @@ void blk_free_devt(dev_t devt)
 		return;
 
 	if (MAJOR(devt) == BLOCK_EXT_MAJOR) {
-		spin_lock(&ext_devt_lock);
+		spin_lock_bh(&ext_devt_lock);
 		idr_remove(&ext_devt_idr, blk_mangle_minor(MINOR(devt)));
-		spin_unlock(&ext_devt_lock);
+		spin_unlock_bh(&ext_devt_lock);
 	}
 }
 
@@ -694,13 +702,13 @@ struct gendisk *get_gendisk(dev_t devt, int *partno)
 	} else {
 		struct hd_struct *part;
 
-		spin_lock(&ext_devt_lock);
+		spin_lock_bh(&ext_devt_lock);
 		part = idr_find(&ext_devt_idr, blk_mangle_minor(MINOR(devt)));
 		if (part && get_disk(part_to_disk(part))) {
 			*partno = part->partno;
 			disk = part_to_disk(part);
 		}
-		spin_unlock(&ext_devt_lock);
+		spin_unlock_bh(&ext_devt_lock);
 	}
 
 	return disk;
