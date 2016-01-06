@@ -278,6 +278,7 @@ int msm_fb_detect_client(const char *name)
 	return ret;
 }
 
+#ifdef CONFIG_FB_MSM_MIPI_DSI_JDI
 static ssize_t msm_fb_set_cabc(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
@@ -351,6 +352,7 @@ static ssize_t msm_fb_get_sre(struct device *dev,
 
     return ret;
 }
+#endif
 
 static ssize_t msm_fb_fps_level_change(struct device *dev,
 				struct device_attribute *attr,
@@ -431,14 +433,18 @@ static ssize_t msm_fb_msm_fb_type(struct device *dev,
 static DEVICE_ATTR(msm_fb_type, S_IRUGO, msm_fb_msm_fb_type, NULL);
 static DEVICE_ATTR(msm_fb_fps_level, S_IRUGO | S_IWUSR, NULL, \
 				msm_fb_fps_level_change);
+#ifdef CONFIG_FB_MSM_MIPI_DSI_JDI
 static DEVICE_ATTR(cabc, S_IRUGO | S_IWUSR, msm_fb_get_cabc, msm_fb_set_cabc);
 static DEVICE_ATTR(sre, S_IRUGO | S_IWUSR, msm_fb_get_sre, msm_fb_set_sre);
+#endif
 
 static struct attribute *msm_fb_attrs[] = {
 	&dev_attr_msm_fb_type.attr,
 	&dev_attr_msm_fb_fps_level.attr,
+#ifdef CONFIG_FB_MSM_MIPI_DSI_JDI
 	&dev_attr_cabc.attr,
 	&dev_attr_sre.attr,
+#endif
 	NULL,
 };
 static struct attribute_group msm_fb_attr_group = {
