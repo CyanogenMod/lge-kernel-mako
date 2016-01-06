@@ -51,8 +51,6 @@ static struct dsi_buf JDI_tx_buf;
 static struct dsi_buf JDI_rx_buf;
 static int mipi_JDI_lcd_init(void);
 
-static bool sre_enabled = false;
-
 static char sw_reset[2] = {0x01, 0x00}; /* DTYPE_DCS_WRITE */
 static char enter_sleep[2] = {0x10, 0x00}; /* DTYPE_DCS_WRITE */
 static char exit_sleep[2] = {0x11, 0x00}; /* DTYPE_DCS_WRITE */
@@ -87,7 +85,9 @@ static char backlight_control4[] = {0xCE, 0x7D, 0x40, 0x48, 0x56, 0x67, 0x78,
 static char LTPS_timing_setting[2] = {0xC6, 0x78};
 static char sequencer_timing_control[2] = {0xD6, 0x01};
 
-static int cabc_level = 0x00;
+static unsigned int cabc_level = 0;
+static unsigned int sre_level = 0;
+static bool aco_enabled = false;
 
 static struct dsi_cmd_desc JDI_display_on_cmds[] = {
 	{DTYPE_DCS_WRITE, 1, 0, 0, 5,
@@ -269,10 +269,42 @@ static void JDI_command_backlight(int level)
 	mipi_dsi_cmdlist_put(&cmdreq_JDI);
 }
 
-static void JDI_command_cabc(struct platform_device *pdev, int level)
+static void JDI_command_cabc(void)
 {
-	pr_debug("%s: level %d\n", __func__, level);
-	write_cabc[1] = (char) level;
+	write_cabc[1] = CABC_OFF;
+
+	switch (cabc_level) {
+	case 1:
+		write_cabc[1] |= CABC_UI;
+		break;
+	case 2:
+		write_cabc[1] |= CABC_IMAGE;
+		break;
+	case 3:
+		write_cabc[1] |= CABC_VIDEO;
+		break;
+	default:
+		break;
+	}
+
+	switch (sre_level) {
+	case 1:
+		write_cabc[1] |= SRE_WEAK;
+		break;
+	case 2:
+		write_cabc[1] |= SRE_MEDIUM;
+		break;
+	case 3:
+		write_cabc[1] |= SRE_STRONG;
+		break;
+	default:
+		break;
+	}
+
+	if (aco_enabled)
+		write_cabc[1] |= CABC_ACO;
+
+	pr_debug("%s: cabc cmd %d\n", __func__, write_cabc[1]);
 
 	/* mdp4_dsi_cmd_busy_wait: will turn on dsi clock also */
 	mipi_dsi_mdp_busy_wait();
@@ -287,26 +319,32 @@ static void JDI_command_cabc(struct platform_device *pdev, int level)
 
 static void mipi_JDI_set_cabc(struct platform_device *pdev, int level)
 {
-	if (level < CABC_OFF || level > CABC_HIGH)
-		return;
-
 	cabc_level = level;
-	if (!sre_enabled)
-		JDI_command_cabc(pdev, cabc_level);
+	JDI_command_cabc();
 }
 
 static int mipi_JDI_get_cabc(struct platform_device *pdev) {
 	return cabc_level;
 }
 
-static void mipi_JDI_set_sre(struct platform_device *pdev, bool enabled)
+static void mipi_JDI_set_sre(struct platform_device *pdev, int level)
 {
-	sre_enabled = enabled;
-	JDI_command_cabc(pdev, (enabled ? (int)CABC_SRE : cabc_level));
+	sre_level = level;
+	JDI_command_cabc();
 }
 
 static int mipi_JDI_get_sre(struct platform_device *pdev) {
-	return sre_enabled;
+	return sre_level;
+}
+
+static void mipi_JDI_set_aco(struct platform_device *pdev, bool enabled)
+{
+	aco_enabled = enabled;
+	JDI_command_cabc();
+}
+
+static int mipi_JDI_get_aco(struct platform_device *pdev) {
+	return aco_enabled;
 }
 
 static void mipi_JDI_set_backlight(struct msm_fb_data_type *mfd)
@@ -496,6 +534,8 @@ static struct msm_fb_panel_data JDI_panel_data = {
 	.get_cabc	= mipi_JDI_get_cabc,
 	.set_sre	= mipi_JDI_set_sre,
 	.get_sre	= mipi_JDI_get_sre,
+	.set_aco	= mipi_JDI_set_aco,
+	.get_aco	= mipi_JDI_get_aco,
 };
 
 static int ch_used[3];
