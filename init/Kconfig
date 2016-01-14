@@ -1248,7 +1248,7 @@ config PCI_QUIRKS
           unaffected by PCI quirks.
 
 config SLUB_DEBUG
-	default y
+	default n
 	bool "Enable SLUB debugging support" if EXPERT
 	depends on SLUB && SYSFS
 	help
