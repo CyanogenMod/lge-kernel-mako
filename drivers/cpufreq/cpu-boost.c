@@ -232,7 +232,7 @@ static int boost_mig_sync_thread(void *data)
 	unsigned long flags;
 	unsigned int req_freq;
 
-	while(1) {
+	while (1) {
 		wait_event_interruptible(s->sync_wq, s->pending ||
 					kthread_should_stop());
 
@@ -270,17 +270,6 @@ static int boost_mig_sync_thread(void *data)
 
 		/* Force policy re-evaluation to trigger adjust notifier. */
 		get_online_cpus();
-		if (cpu_online(src_cpu))
-			/*
-			 * Send an unchanged policy update to the source
-			 * CPU. Even though the policy isn't changed from
-			 * its existing boosted or non-boosted state
-			 * notifying the source CPU will let the governor
-			 * know a boost happened on another CPU and that it
-			 * should re-evaluate the frequency at the next timer
-			 * event without interference from a min sample time.
-			 */
-			cpufreq_update_policy(src_cpu);
 		if (cpu_online(dest_cpu)) {
 			cpufreq_update_policy(dest_cpu);
 			queue_delayed_work_on(dest_cpu, cpu_boost_wq,
