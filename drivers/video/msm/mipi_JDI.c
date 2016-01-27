@@ -440,18 +440,6 @@ static void mipi_JDI_lcd_shutdown(void)
 	gpio_set_value_cansleep(gpio_LCD_BL_EN, 0);
 	usleep(10000);
 
-	pr_info("%s: backlight off\n", __func__);
-	if (hw_revision == HW_REV_D || hw_revision == HW_REV_E)
-		JDI_command_backlight(0);
-	else {
-		if (bl_lpm) {
-			ret = pwm_config(bl_lpm, 0, PWM_PERIOD_USEC);
-			if (ret)
-				pr_err("pwm_config failed %d\n", ret);
-			pwm_disable(bl_lpm);
-		}
-	}
-
 	pr_info("%s, JDI display off command+\n", __func__);
 	cmdreq_JDI.cmds = JDI_display_off_cmds;
 	cmdreq_JDI.cmds_cnt = ARRAY_SIZE(JDI_display_off_cmds);
