@@ -1309,12 +1309,12 @@ static int msm_fb_blank(int blank_mode, struct fb_info *info)
 			}
 		} else if (blank_mode == FB_BLANK_VSYNC_SUSPEND) {
  			mfd->suspend.panel_power_state = MDP_PANEL_POWER_DOZE;
- 			/* if unblank is called when system is in suspend,
- 			do not unblank but send SUCCESS to hwc, so that hwc
- 			keeps pushing frames and display comes up as soon
- 			as system is resumed */
- 			unlock_panel_mutex(mfd);
- 			return 0;
+			/* if unblank is called when system is in suspend,
+			wait for the system to resume */
+			while (mfd->suspend.op_suspend) {
+				pr_debug("waiting for system to resume\n");
+				msleep(20);
+			}
  		} else
  			mfd->suspend.panel_power_state = MDP_PANEL_POWER_OFF;
 	}

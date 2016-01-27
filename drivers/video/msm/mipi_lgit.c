@@ -184,7 +184,7 @@ static void mipi_lgit_lcd_shutdown(void)
 {
 	int ret = 0;
 
-	if(local_mfd && !local_mfd->panel_power_on) {
+	if(local_mfd && mdp_fb_is_power_off(local_mfd)) {
 		pr_info("%s:panel is already off\n", __func__);
 		return;
 	}
