@@ -373,7 +373,7 @@ static void mipi_JDI_set_backlight(struct msm_fb_data_type *mfd)
 			}
 
 			if (!bl_enable_sleep_control) {
-				msleep_interruptible(10);
+				usleep(10000);
 				bl_enable_sleep_control = 1;
 				pr_info("%s: pwm enable\n", __func__);
 			}
@@ -381,7 +381,7 @@ static void mipi_JDI_set_backlight(struct msm_fb_data_type *mfd)
 		} else {
 			gpio_set_value_cansleep(gpio_LCD_BL_EN, 0);
 			if (bl_enable_sleep_control) {
-				msleep_interruptible(10);
+				usleep(10000);
 				bl_enable_sleep_control = 0;
 				pr_info("%s: pwm disable\n", __func__);
 			}
@@ -427,7 +427,7 @@ static void mipi_JDI_set_recovery_backlight(struct msm_fb_data_type *mfd)
 						recovery_backlight);
 			}
 
-			msleep_interruptible(10);
+			usleep(10000);
 			gpio_set_value_cansleep(gpio_LCD_BL_EN, 1);
 		}
 		mipi_JDI_pdata->set_recovery_bl_done = 1;
@@ -435,12 +435,10 @@ static void mipi_JDI_set_recovery_backlight(struct msm_fb_data_type *mfd)
 }
 static void mipi_JDI_lcd_shutdown(void)
 {
-	int ret;
-
 	pr_info("%s+\n", __func__);
 
 	gpio_set_value_cansleep(gpio_LCD_BL_EN, 0);
-	msleep_interruptible(10);
+	usleep(10000);
 
 	pr_info("%s: backlight off\n", __func__);
 	if (hw_revision == HW_REV_D || hw_revision == HW_REV_E)
@@ -464,11 +462,11 @@ static void mipi_JDI_lcd_shutdown(void)
 	pr_info("%s, JDI display off command-\n", __func__);
 
 	pr_info("%s: power gpio off\n", __func__);
-	msleep(20);
+	usleep(20000);
 	gpio_set_value_cansleep(gpio_EN_VDD_BL, 0);
-	msleep(20);
+	usleep(20000);
 	gpio_set_value_cansleep(gpio_LCM_XRES, 0);
-	msleep_interruptible(8);
+	usleep(8000);
 
 	pr_info("%s-\n", __func__);
 }
