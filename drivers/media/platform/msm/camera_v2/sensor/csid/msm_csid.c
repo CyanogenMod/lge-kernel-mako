@@ -486,6 +486,10 @@ static long msm_csid_cmd(struct csid_device *csid_dev, void *arg)
 			}
 			csid_params.lut_params.vc_cfg[i] = vc_cfg;
 		}
+		if (rc < 0) {
+			pr_err("%s:%d failed\n", __func__, __LINE__);
+			break;
+		}
 		rc = msm_csid_config(csid_dev, &csid_params);
 		for (i--; i >= 0; i--)
 			kfree(csid_params.lut_params.vc_cfg[i]);
