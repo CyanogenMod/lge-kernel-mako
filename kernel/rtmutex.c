@@ -560,7 +560,12 @@ void rt_mutex_adjust_pi(struct task_struct *task)
 
 	/* gets dropped in rt_mutex_adjust_prio_chain()! */
 	get_task_struct(task);
+<<<<<<< HEAD
 	rt_mutex_adjust_prio_chain(task, 0, NULL, NULL, task);
+=======
+
+	rt_mutex_adjust_prio_chain(task, 0, NULL, next_lock, NULL, task);
+>>>>>>> 156376c... Linux 3.4.99
 }
 
 /**

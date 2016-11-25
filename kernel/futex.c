@@ -60,6 +60,7 @@
 #include <linux/pid.h>
 #include <linux/nsproxy.h>
 #include <linux/ptrace.h>
+#include <linux/hugetlb.h>
 #include <linux/freezer.h>
 
 #include <asm/futex.h>
@@ -643,6 +644,7 @@ lookup_pi_state(u32 uval, struct futex_hash_bucket *hb,
 {
 	struct futex_pi_state *pi_state = NULL;
 	struct futex_q *this, *next;
+<<<<<<< HEAD
 	struct plist_head *head;
 	struct task_struct *p;
 	pid_t pid = uval & FUTEX_TID_MASK;
@@ -650,6 +652,12 @@ lookup_pi_state(u32 uval, struct futex_hash_bucket *hb,
 	head = &hb->chain;
 
 	plist_for_each_entry_safe(this, next, head, list) {
+=======
+	struct task_struct *p;
+	pid_t pid = uval & FUTEX_TID_MASK;
+
+	plist_for_each_entry_safe(this, next, &hb->chain, list) {
+>>>>>>> 7ce4e08... Linux 3.4.92
 		if (match_futex(&this->key, key)) {
 			/*
 			 * Sanity check the waiter before increasing
@@ -794,9 +802,9 @@ lookup_pi_state(u32 uval, struct futex_hash_bucket *hb,
  *			be "current" except in the case of requeue pi.
  * @set_waiters:	force setting the FUTEX_WAITERS bit (1) or not (0)
  *
- * Returns:
- *  0 - ready to wait
- *  1 - acquired the lock
+ * Return:
+ *  0 - ready to wait;
+ * >0 - acquired the lock, return value is vpid of the top_waiter
  * <0 - error
  *
  * The hb->lock and futex_key refs shall be held by the caller.
@@ -806,7 +814,11 @@ static int futex_lock_pi_atomic(u32 __user *uaddr, struct futex_hash_bucket *hb,
 				struct futex_pi_state **ps,
 				struct task_struct *task, int set_waiters)
 {
+<<<<<<< HEAD
 	int lock_taken, ret, ownerdied = 0;
+=======
+	int lock_taken, ret, force_take = 0;
+>>>>>>> ffef331... Linux 3.4.19
 	u32 uval, newval, curval, vpid = task_pid_vnr(task);
 
 retry:
@@ -831,6 +843,8 @@ retry:
 		return -EDEADLK;
 
 	/*
+<<<<<<< HEAD
+<<<<<<< HEAD
 	 * Surprise - we got the lock, but we do not trust user space at all.
 	 */
 	if (unlikely(!curval)) {
@@ -864,6 +878,42 @@ retry:
 		/* Keep the OWNER_DIED bit */
 		newval = (curval & ~FUTEX_TID_MASK) | vpid;
 		ownerdied = 0;
+=======
+	 * Surprise - we got the lock. Just return to userspace:
+=======
+	 * Surprise - we got the lock, but we do not trust user space at all.
+>>>>>>> 7ce4e08... Linux 3.4.92
+	 */
+	if (unlikely(!curval)) {
+		/*
+		 * We verify whether there is kernel state for this
+		 * futex. If not, we can safely assume, that the 0 ->
+		 * TID transition is correct. If state exists, we do
+		 * not bother to fixup the user space state as it was
+		 * corrupted already.
+		 */
+		return futex_top_waiter(hb, key) ? -EINVAL : 1;
+	}
+
+	uval = curval;
+
+	/*
+	 * Set the FUTEX_WAITERS flag, so the owner will know it has someone
+	 * to wake at the next unlock.
+	 */
+	newval = curval | FUTEX_WAITERS;
+
+	/*
+	 * Should we force take the futex? See below.
+	 */
+	if (unlikely(force_take)) {
+		/*
+		 * Keep the OWNER_DIED and the WAITERS bit and set the
+		 * new TID value.
+		 */
+		newval = (curval & ~FUTEX_TID_MASK) | vpid;
+		force_take = 0;
+>>>>>>> ffef331... Linux 3.4.19
 		lock_taken = 1;
 	}
 
@@ -873,7 +923,11 @@ retry:
 		goto retry;
 
 	/*
+<<<<<<< HEAD
 	 * We took the lock due to owner died take over.
+=======
+	 * We took the lock due to forced take over.
+>>>>>>> ffef331... Linux 3.4.19
 	 */
 	if (unlikely(lock_taken))
 		return 1;
@@ -888,20 +942,40 @@ retry:
 		switch (ret) {
 		case -ESRCH:
 			/*
+<<<<<<< HEAD
 			 * No owner found for this futex. Check if the
 			 * OWNER_DIED bit is set to figure out whether
 			 * this is a robust futex or not.
+=======
+			 * We failed to find an owner for this
+			 * futex. So we have no pi_state to block
+			 * on. This can happen in two cases:
+			 *
+			 * 1) The owner died
+			 * 2) A stale FUTEX_WAITERS bit
+			 *
+			 * Re-read the futex value.
+>>>>>>> ffef331... Linux 3.4.19
 			 */
 			if (get_futex_value_locked(&curval, uaddr))
 				return -EFAULT;
 
 			/*
+<<<<<<< HEAD
 			 * We simply start over in case of a robust
 			 * futex. The code above will take the futex
 			 * and return happy.
 			 */
 			if (curval & FUTEX_OWNER_DIED) {
 				ownerdied = 1;
+=======
+			 * If the owner died or we have a stale
+			 * WAITERS bit the owner TID in the user space
+			 * futex is 0.
+			 */
+			if (!(curval & FUTEX_TID_MASK)) {
+				force_take = 1;
+>>>>>>> ffef331... Linux 3.4.19
 				goto retry;
 			}
 		default:
@@ -1474,6 +1548,11 @@ retry_private:
 			goto out;
 		case -EAGAIN:
 			/* The owner was exiting, try again. */
+<<<<<<< HEAD
+=======
+			free_pi_state(pi_state);
+			pi_state = NULL;
+>>>>>>> 2be8715... Linux 3.4.106
 			double_unlock_hb(hb1, hb2);
 			put_futex_key(&key2);
 			put_futex_key(&key1);
@@ -2200,9 +2279,13 @@ static int futex_unlock_pi(u32 __user *uaddr, unsigned int flags)
 {
 	struct futex_hash_bucket *hb;
 	struct futex_q *this, *next;
+<<<<<<< HEAD
 	struct plist_head *head;
 	union futex_key key = FUTEX_KEY_INIT;
 	u32 uval, vpid = task_pid_vnr(current);
+=======
+	struct futex_q *match;
+>>>>>>> 7ce4e08... Linux 3.4.92
 	int ret;
 
 retry:
@@ -2226,6 +2309,7 @@ retry:
 	 * again. If it succeeds then we can return without waking
 	 * anyone else up. We only try this if neither the waiters nor
 	 * the owner died bit are set.
+<<<<<<< HEAD
 	 */
 	if (!(uval & ~FUTEX_TID_MASK) &&
 	    cmpxchg_futex_value_locked(&uval, uaddr, vpid, 0))
@@ -2244,6 +2328,24 @@ retry:
 	head = &hb->chain;
 
 	plist_for_each_entry_safe(this, next, head, list) {
+=======
+	 */
+	if (!(uval & ~FUTEX_TID_MASK) &&
+	    cmpxchg_futex_value_locked(&uval, uaddr, vpid, 0))
+		goto pi_faulted;
+	/*
+	 * Rare case: we managed to release the lock atomically,
+	 * no need to wake anyone else up:
+	 */
+	if (unlikely(uval == vpid))
+		goto out_unlock;
+
+	/*
+	 * Ok, other tasks may need to be woken up - check waiters
+	 * and do the wakeup if necessary:
+	 */
+	plist_for_each_entry_safe(this, next, &hb->chain, list) {
+>>>>>>> 7ce4e08... Linux 3.4.92
 		if (!match_futex (&this->key, &key))
 			continue;
 		ret = wake_futex_pi(uaddr, uval, this);

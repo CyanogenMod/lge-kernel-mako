@@ -2651,7 +2651,11 @@ loop_again:
 			if ((buffer_heads_over_limit && is_highmem_idx(i)) ||
 			    !zone_balanced(zone, testorder,
 					   balance_gap, end_zone)) {
+<<<<<<< HEAD
 				shrink_zone(zone, &sc);
+=======
+				shrink_zone(priority, zone, &sc);
+>>>>>>> 544caa8... Linux 3.4.83
 
 				reclaim_state->reclaimed_slab = 0;
 				nr_slab = shrink_slab(&shrink, sc.nr_scanned, lru_pages);
@@ -2946,6 +2950,11 @@ static int kswapd(void *p)
 						&balanced_classzone_idx);
 		}
 	}
+
+	tsk->flags &= ~(PF_MEMALLOC | PF_SWAPWRITE | PF_KSWAPD);
+	current->reclaim_state = NULL;
+	lockdep_clear_current_reclaim_state();
+
 	return 0;
 }
 

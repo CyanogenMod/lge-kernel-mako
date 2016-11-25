@@ -613,14 +613,16 @@ EXPORT_SYMBOL(mark_buffer_dirty_inode);
 static void __set_page_dirty(struct page *page,
 		struct address_space *mapping, int warn)
 {
-	spin_lock_irq(&mapping->tree_lock);
+	unsigned long flags;
+
+	spin_lock_irqsave(&mapping->tree_lock, flags);
 	if (page->mapping) {	/* Race with truncate? */
 		WARN_ON_ONCE(warn && !PageUptodate(page));
 		account_page_dirtied(page, mapping);
 		radix_tree_tag_set(&mapping->page_tree,
 				page_index(page), PAGECACHE_TAG_DIRTY);
 	}
-	spin_unlock_irq(&mapping->tree_lock);
+	spin_unlock_irqrestore(&mapping->tree_lock, flags);
 	__mark_inode_dirty(mapping->host, I_DIRTY_PAGES);
 }
 
@@ -945,14 +947,18 @@ init_page_buffers(struct page *page, struct block_device *bdev,
  */
 static struct page *
 grow_dev_page(struct block_device *bdev, sector_t block,
+<<<<<<< HEAD
 		pgoff_t index, int size)
+=======
+	      pgoff_t index, int size, int sizebits, gfp_t gfp)
+>>>>>>> 894e61c... Linux 3.4.111
 {
 	struct inode *inode = bdev->bd_inode;
 	struct page *page;
 	struct buffer_head *bh;
 
 	page = find_or_create_page(inode->i_mapping, index,
-		(mapping_gfp_mask(inode->i_mapping) & ~__GFP_FS)|__GFP_MOVABLE);
+		(mapping_gfp_mask(inode->i_mapping) & ~__GFP_FS) | gfp);
 	if (!page)
 		return NULL;
 
@@ -961,8 +967,15 @@ grow_dev_page(struct block_device *bdev, sector_t block,
 	if (page_has_buffers(page)) {
 		bh = page_buffers(page);
 		if (bh->b_size == size) {
+<<<<<<< HEAD
 			init_page_buffers(page, bdev, block, size);
 			return page;
+=======
+			end_block = init_page_buffers(page, bdev,
+						(sector_t)index << sizebits,
+						size);
+			goto done;
+>>>>>>> 46f3cd4... Linux 3.4.105
 		}
 		if (!try_to_free_buffers(page))
 			goto failed;
@@ -982,7 +995,12 @@ grow_dev_page(struct block_device *bdev, sector_t block,
 	 */
 	spin_lock(&inode->i_mapping->private_lock);
 	link_dev_buffers(page, bh);
+<<<<<<< HEAD
 	init_page_buffers(page, bdev, block, size);
+=======
+	end_block = init_page_buffers(page, bdev, (sector_t)index << sizebits,
+			size);
+>>>>>>> 46f3cd4... Linux 3.4.105
 	spin_unlock(&inode->i_mapping->private_lock);
 	return page;
 
@@ -997,7 +1015,7 @@ failed:
  * that page was dirty, the buffers are set dirty also.
  */
 static int
-grow_buffers(struct block_device *bdev, sector_t block, int size)
+grow_buffers(struct block_device *bdev, sector_t block, int size, gfp_t gfp)
 {
 	struct page *page;
 	pgoff_t index;
@@ -1025,16 +1043,21 @@ grow_buffers(struct block_device *bdev, sector_t block, int size)
 	}
 	block = index << sizebits;
 	/* Create a page with the proper size buffers.. */
+<<<<<<< HEAD
 	page = grow_dev_page(bdev, block, index, size);
 	if (!page)
 		return 0;
 	unlock_page(page);
 	page_cache_release(page);
 	return 1;
+=======
+	return grow_dev_page(bdev, block, index, size, sizebits, gfp);
+>>>>>>> 894e61c... Linux 3.4.111
 }
 
-static struct buffer_head *
-__getblk_slow(struct block_device *bdev, sector_t block, int size)
+struct buffer_head *
+__getblk_slow(struct block_device *bdev, sector_t block,
+	     unsigned size, gfp_t gfp)
 {
 	int ret;
 	struct buffer_head *bh;
@@ -1064,9 +1087,19 @@ retry:
 		bh = __find_get_block(bdev, block, size);
 		if (bh)
 			return bh;
+<<<<<<< HEAD
+=======
+
+		ret = grow_buffers(bdev, block, size, gfp);
+		if (ret < 0)
+			return NULL;
+		if (ret == 0)
+			free_more_memory();
+>>>>>>> 894e61c... Linux 3.4.111
 	}
 	return NULL;
 }
+EXPORT_SYMBOL(__getblk_slow);
 
 /*
  * The relationship between dirty buffers and dirty pages:
@@ -1317,28 +1350,34 @@ __find_get_block(struct block_device *bdev, sector_t block, unsigned size)
 EXPORT_SYMBOL(__find_get_block);
 
 /*
- * __getblk will locate (and, if necessary, create) the buffer_head
+ * __getblk_gfp() will locate (and, if necessary, create) the buffer_head
  * which corresponds to the passed block_device, block and size. The
  * returned buffer has its reference count incremented.
  *
+<<<<<<< HEAD
  * __getblk() cannot fail - it just keeps trying.  If you pass it an
  * illegal block number, __getblk() will happily return a buffer_head
  * which represents the non-existent block.  Very weird.
  *
  * __getblk() will lock up the machine if grow_dev_page's try_to_free_buffers()
  * attempt is failing.  FIXME, perhaps?
+=======
+ * __getblk_gfp() will lock up the machine if grow_dev_page's
+ * try_to_free_buffers() attempt is failing.  FIXME, perhaps?
+>>>>>>> 894e61c... Linux 3.4.111
  */
 struct buffer_head *
-__getblk(struct block_device *bdev, sector_t block, unsigned size)
+__getblk_gfp(struct block_device *bdev, sector_t block,
+	     unsigned size, gfp_t gfp)
 {
 	struct buffer_head *bh = __find_get_block(bdev, block, size);
 
 	might_sleep();
 	if (bh == NULL)
-		bh = __getblk_slow(bdev, block, size);
+		bh = __getblk_slow(bdev, block, size, gfp);
 	return bh;
 }
-EXPORT_SYMBOL(__getblk);
+EXPORT_SYMBOL(__getblk_gfp);
 
 /*
  * Do async read-ahead on a buffer..
@@ -1354,24 +1393,28 @@ void __breadahead(struct block_device *bdev, sector_t block, unsigned size)
 EXPORT_SYMBOL(__breadahead);
 
 /**
- *  __bread() - reads a specified block and returns the bh
+ *  __bread_gfp() - reads a specified block and returns the bh
  *  @bdev: the block_device to read from
  *  @block: number of block
  *  @size: size (in bytes) to read
- * 
+ *  @gfp: page allocation flag
+ *
  *  Reads a specified block, and returns buffer head that contains it.
+ *  The page cache can be allocated from non-movable area
+ *  not to prevent page migration if you set gfp to zero.
  *  It returns NULL if the block was unreadable.
  */
 struct buffer_head *
-__bread(struct block_device *bdev, sector_t block, unsigned size)
+__bread_gfp(struct block_device *bdev, sector_t block,
+		   unsigned size, gfp_t gfp)
 {
-	struct buffer_head *bh = __getblk(bdev, block, size);
+	struct buffer_head *bh = __getblk_gfp(bdev, block, size, gfp);
 
 	if (likely(bh) && !buffer_uptodate(bh))
 		bh = __bread_slow(bh);
 	return bh;
 }
-EXPORT_SYMBOL(__bread);
+EXPORT_SYMBOL(__bread_gfp);
 
 /*
  * invalidate_bh_lrus() is called rarely - but not only at unmount.

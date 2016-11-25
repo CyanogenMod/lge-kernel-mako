@@ -161,10 +161,20 @@ vfp_hw_state_valid:
 					@ exception before retrying branch
 					@ out before setting an FPEXC that
 					@ stops us reading stuff
+<<<<<<< HEAD
 	VFPFMXR	FPEXC, r1		@ restore FPEXC last
 	sub	r2, r2, #4
 	str	r2, [sp, #S_PC]		@ retry the instruction
 #ifdef CONFIG_PREEMPT
+=======
+	VFPFMXR	FPEXC, r1		@ Restore FPEXC last
+	sub	r2, r2, #4		@ Retry current instruction - if Thumb
+	str	r2, [sp, #S_PC]		@ mode it's two 16-bit instructions,
+					@ else it's one 32-bit instruction, so
+					@ always subtract 4 from the following
+					@ instruction address.
+#ifdef CONFIG_PREEMPT_COUNT
+>>>>>>> 0e709ff... Linux 3.4.29
 	get_thread_info	r10
 	ldr	r4, [r10, #TI_PREEMPT]	@ get preempt count
 	sub	r11, r4, #1		@ decrement it
@@ -204,7 +214,7 @@ skip:
 	@ not recognised by VFP
 
 	DBGSTR	"not VFP"
-#ifdef CONFIG_PREEMPT
+#ifdef CONFIG_PREEMPT_COUNT
 	get_thread_info	r10
 	ldr	r4, [r10, #TI_PREEMPT]	@ get preempt count
 	sub	r11, r4, #1		@ decrement it

@@ -451,6 +451,7 @@ static void zs_copy_map_object(char *buf, struct page *firstpage,
 	kunmap_atomic(addr);
 }
 
+<<<<<<< HEAD
 static void zs_copy_unmap_object(char *buf, struct page *firstpage,
 				int off, int size)
 {
@@ -477,6 +478,8 @@ static void zs_copy_unmap_object(char *buf, struct page *firstpage,
 	pagefault_enable();
 }
 
+=======
+>>>>>>> 4ff2af1... Linux 3.4.8
 static int zs_cpu_notifier(struct notifier_block *nb, unsigned long action,
 				void *pcpu)
 {
